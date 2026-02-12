@@ -58,7 +58,7 @@ Tests use `pytest-asyncio` with `asyncio_mode = "auto"` — async test functions
 
 **Memory**: FAISS vector DB with configurable embeddings (default: sentence-transformers local; supports remote providers via LiteLLM). Used by `memory_save`/`memory_load` tools and recall extensions.
 
-**Branding**: Centralized in `python/helpers/branding.py` with 4 env vars (`BRAND_NAME`, `BRAND_SLUG`, `BRAND_URL`, `BRAND_GITHUB_URL`). Frontend gets values via `/branding_get` API → Alpine.js store (`webui/js/branding-store.js`). Prompt templates use `{{brand_name}}` variable injection.
+**Branding**: Centralized in `python/helpers/branding.py` with 5 env vars (`BRAND_NAME`, `BRAND_SLUG`, `BRAND_URL`, `BRAND_GITHUB_URL`, `BRAND_UPDATE_CHECK_URL`). Frontend gets values via `/branding_get` API → Alpine.js store (`webui/js/branding-store.js`). Prompt templates use `{{brand_name}}` variable injection.
 
 ## Conventions
 
@@ -66,6 +66,7 @@ Tests use `pytest-asyncio` with `asyncio_mode = "auto"` — async test functions
 - **New tool**: Extend `Tool` in `python/tools/`, implement `async execute(**kwargs) -> Response`
 - **New API endpoint**: Extend `ApiHandler` in `python/api/`, implement `async process(input, request) -> dict`
 - **New extension**: Extend `Extension` in the appropriate `python/extensions/<hook>/` dir, prefix-sorted filename
+- **New WebSocket handler**: Extend handler class in `python/websocket_handlers/`, auto-discovered by namespace
 - **Disabled files**: `._py` suffix = archived/disabled
 - **Commits**: Conventional Commits enforced by hk hook (`feat:`, `fix:`, `refactor:`, `chore:`, `docs:`, `test:`, `ci:`, `style:`, `perf:`, `security:`)
 
@@ -106,3 +107,27 @@ All CI workflows use `jdx/mise-action@v3` for tool installation; security workfl
 ## DriftDetect
 
 `.drift/` contains codebase pattern analysis artifacts. The `patterns/approved/` directory and config are committed; `memory/`, `cache/`, `lake/`, `history/` are gitignored. Run `mise run drift:scan` to analyze, `mise run drift:gate` for quality gates.
+
+## Authentication
+
+Four-phase auth system on `feat/entraid-mcp-auth` branch:
+
+- **Auth DB**: `auth_db.py` (SQLAlchemy), `user_store.py` (ORM + CRUD), `alembic/` (migrations)
+- **OIDC**: `auth.py` (MSAL/Entra ID), env: `OIDC_TENANT_ID`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`
+- **Local login**: Argon2id hashing, fallback from OIDC
+- **Tenant isolation**: `tenant.py` (TenantContext), multi-user data scoping
+- **RBAC**: `rbac.py` + `conf/rbac_model.conf` (Casbin)
+- **Vault**: `vault_crypto.py` (AES-256-GCM, HKDF), env: `VAULT_MASTER_KEY`
+- **Bootstrap**: `auth_bootstrap.py` creates admin from `ADMIN_EMAIL`/`ADMIN_PASSWORD`
+- **Session**: `session["user"] = {id, email, name, auth_method}`
+- **Routes**: `/login`, `/login/entra`, `/auth/callback`, `/logout`
+- **Legacy compat**: `AUTH_LOGIN`/`AUTH_PASSWORD` still works as single-user fallback
+- **Migrations**: `uv run alembic upgrade head` (run automatically by bootstrap)
+
+## Gotchas
+
+- **faiss-cpu pinned at 1.11.0** — do not upgrade until 1.15.0 (SWIG 4.4 + numpy.distutils fix)
+- **faiss monkey patch**: `python/helpers/faiss_monkey_patch.py` — side-effect import in `memory.py`/`vector_db.py`, needed for Python 3.12/ARM
+- **openai version override**: `[tool.uv] override-dependencies = ["openai==1.99.5"]` — browser-use pins 1.99.2
+- **requirements.txt**: Auto-generated — never edit manually; use `mise run deps:add`
+- **SWIG/aiohttp warnings**: `SwigPyPacked/__module__` and `enable_cleanup_closed` appear at startup; harmless, fix expected in faiss 1.15.0 and upstream LiteLLM
