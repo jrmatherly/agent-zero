@@ -255,6 +255,7 @@ run = "git-cliff --bump --output CHANGELOG.md"
 [tasks.release]
 description = "Create a release: bump version, changelog, commit, tag, push (usage: mise run release [version])"
 usage = 'arg "[version]" help="Version to release (e.g. 0.2.1). Omit for auto-bump via conventional commits."'
+raw = true
 run = '''
 #!/usr/bin/env bash
 set -euo pipefail
