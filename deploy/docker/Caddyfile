@@ -1,0 +1,42 @@
+# Apollos AI — Caddy Reverse Proxy Configuration
+#
+# MODE 1: Custom Certificates (default)
+#   Place your cert and key in the certs/ directory:
+#     certs/cert.pem   — Full certificate chain (cert + intermediates)
+#     certs/key.pem    — Private key
+#   Set DOMAIN in .env to your hostname.
+#
+# MODE 2: Automatic HTTPS (Let's Encrypt)
+#   Comment out the "tls" line below and Caddy will automatically
+#   obtain and renew certificates via ACME. Requires:
+#     - DOMAIN set to a publicly reachable FQDN
+#     - Ports 80 and 443 open and reachable from the internet
+#
+# MODE 3: Local Development (self-signed)
+#   Set DOMAIN=localhost in .env and change the tls line to:
+#     tls internal
+
+{$DOMAIN:localhost} {
+	# Custom certificates (default) — comment this line for automatic HTTPS
+	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
+
+	reverse_proxy apollos-ai:80 {
+		# WebSocket support for Socket.IO
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+
+		# Flush immediately for streaming responses
+		flush_interval -1
+	}
+
+	# Security headers
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options SAMEORIGIN
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	# Gzip compression
+	encode gzip
+}

@@ -1,9 +1,93 @@
 # Apollos AI Installation Guide
 
-> **Purpose:** Step-by-step guide for deploying Apollos AI instances on VPS/dedicated servers  
-> **Author:** Auto-generated from deployment experience  
-> **Last Updated:** December 21 2025  
+> **Purpose:** Step-by-step guide for deploying Apollos AI instances on VPS/dedicated servers
+> **Author:** Auto-generated from deployment experience
+> **Last Updated:** February 12 2026
 > **Compatibility:** Docker-capable Linux servers (AlmaLinux, CentOS, Rocky, Ubuntu, Debian)
+
+---
+
+## Deployment Methods
+
+| Method | Best For | Guide |
+|--------|----------|-------|
+| **Docker Compose** (recommended) | Dev, testing, single-server VPS | [Quick Start](#docker-compose-quick-start) below |
+| **Docker Run** (manual) | Simple single-container setups | [Container Deployment](#apollos-ai-container-deployment) section |
+| **Kubernetes** | Production, multi-node, HA | `deploy/k8s/` *(coming soon)* |
+
+---
+
+## Docker Compose Quick Start
+
+The recommended way to deploy Apollos AI for development and testing. Includes optional Caddy HTTPS reverse proxy and PostgreSQL database via Compose profiles.
+
+### Guided Setup
+
+```bash
+cd deploy/docker/
+./setup.sh                      # App only (SQLite, port 50080)
+./setup.sh --proxy              # App + Caddy HTTPS
+./setup.sh --postgres           # App + PostgreSQL
+./setup.sh --proxy --postgres   # Full stack
+```
+
+The setup script will:
+1. Create `.env` from `.env.example` with auto-generated secrets
+2. Prompt for admin email and password
+3. Pull images and start services
+
+### Manual Setup
+
+```bash
+cd deploy/docker/
+
+# 1. Configure environment
+cp .env.example .env
+# Edit .env — set FLASK_SECRET_KEY, VAULT_MASTER_KEY, admin creds, API keys
+
+# 2. (Optional) Place TLS certs for Caddy
+cp /path/to/fullchain.pem certs/cert.pem
+cp /path/to/privkey.pem certs/key.pem
+
+# 3. Start services
+docker compose pull
+docker compose up -d                                    # App only
+docker compose --profile proxy up -d                    # + Caddy HTTPS
+docker compose --profile postgres up -d                 # + PostgreSQL
+docker compose --profile proxy --profile postgres up -d # Full stack
+
+# 4. Verify
+curl -sf http://localhost:50080/health
+docker compose logs -f
+```
+
+### Common Operations
+
+```bash
+# View logs
+docker compose logs -f apollos-ai
+
+# Update to latest image
+docker compose pull && docker compose up -d
+
+# Stop all services
+docker compose down
+
+# Stop and remove volumes (CAUTION: destroys data)
+docker compose down -v
+
+# Backup data volume
+docker run --rm -v apollos-ai-data:/data -v $(pwd):/backup \
+  alpine tar czf /backup/apollos-ai-backup-$(date +%F).tar.gz -C /data .
+```
+
+### Caddy TLS Modes
+
+| Mode | Caddyfile `tls` directive | Use case |
+|------|---------------------------|----------|
+| **Custom certs** (default) | `tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem` | You have existing certs |
+| **Automatic HTTPS** | *Comment out the `tls` line* | Public domain, Let's Encrypt |
+| **Self-signed** | `tls internal` | Local development |
 
 ---
 
@@ -11,7 +95,7 @@
 
 1. [Prerequisites](#prerequisites)
 2. [Docker Installation](#docker-installation)
-3. [Apollos AI Container Deployment](#apollos-ai-container-deployment)
+3. [Apollos AI Container Deployment](#apollos-ai-container-deployment) *(manual docker run)*
 4. [Apache Reverse Proxy Configuration](#apache-reverse-proxy-configuration)
 5. [SSL/TLS Configuration](#ssltls-configuration)
 6. [Authentication Setup](#authentication-setup)

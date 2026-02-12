@@ -67,6 +67,11 @@ agent_history.gif
 # Apollos AI Data
 my-data/
 
+# Deploy: TLS certificates and secrets
+deploy/docker/certs/*.pem
+deploy/docker/certs/*.key
+deploy/docker/certs/*.crt
+
 # Drift: ignore caches and temporary data
 .drift/lake/
 .drift/cache/

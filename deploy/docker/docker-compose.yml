@@ -1,0 +1,111 @@
+# Apollos AI — Docker Compose Deployment
+#
+# Usage:
+#   # App only (SQLite, direct port access)
+#   docker compose up -d
+#
+#   # With Caddy HTTPS reverse proxy
+#   docker compose --profile proxy up -d
+#
+#   # With PostgreSQL auth database
+#   docker compose --profile postgres up -d
+#
+#   # Full stack (Caddy + PostgreSQL)
+#   docker compose --profile proxy --profile postgres up -d
+#
+# Prerequisites:
+#   1. Copy .env.example to .env and configure
+#   2. If using Caddy with custom certs, place them in certs/
+#   3. Run: docker compose pull && docker compose up -d
+#
+# See also: deploy/docker/setup.sh for guided first-time setup
+
+services:
+  # ─── Apollos AI Application ────────────────────────────────────────
+  apollos-ai:
+    image: ghcr.io/jrmatherly/apollos-ai:${IMAGE_TAG:-latest}
+    container_name: apollos-ai
+    restart: unless-stopped
+    ports:
+      - "${HOST_PORT:-50080}:80"
+    volumes:
+      - ./.env:/a0/.env:ro
+      - apollos-data:/a0/usr
+    env_file:
+      - path: ./.env
+        required: false
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Caddy Reverse Proxy (--profile proxy) ─────────────────────────
+  # Provides HTTPS termination with custom certificates or automatic
+  # Let's Encrypt. Also handles WebSocket proxying for Socket.IO.
+  caddy:
+    image: caddy:2-alpine
+    container_name: apollos-ai-caddy
+    restart: unless-stopped
+    profiles:
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      apollos-ai:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── PostgreSQL Auth Database (--profile postgres) ──────────────────
+  # Production-grade auth database. When enabled, set in .env:
+  #   AUTH_DATABASE_URL=postgresql://apollos:${POSTGRES_PASSWORD}@postgres:5432/apollos_auth
+  postgres:
+    image: postgres:17-alpine
+    container_name: apollos-ai-db
+    restart: unless-stopped
+    profiles:
+      - postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: apollos_auth
+      POSTGRES_USER: apollos
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apollos -d apollos_auth"]
+      interval: 10s
+      timeout: 5s
+      start_period: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+volumes:
+  apollos-data:
+    name: apollos-ai-data
+  caddy-data:
+    name: apollos-ai-caddy-data
+  caddy-config:
+    name: apollos-ai-caddy-config
+  postgres-data:
+    name: apollos-ai-postgres-data
