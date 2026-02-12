@@ -26,6 +26,7 @@ from flask import (
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from markupsafe import escape
 from socketio import ASGIApp, packet
 from starlette.applications import Starlette
 from starlette.routing import Mount
@@ -431,7 +432,7 @@ async def mcp_oauth_callback():
         PrintStyle.error(f"MCP OAuth callback error: {error}")
         return _mcp_oauth_popup_response(
             success=False,
-            message=f"OAuth authorization failed: {error}",
+            message=f"OAuth authorization failed: {escape(error)}",
         )
 
     if not code or not state:
@@ -478,15 +479,16 @@ async def mcp_oauth_callback():
 
 def _mcp_oauth_popup_response(*, success: bool, message: str) -> str:
     """Return HTML that shows a message and closes the popup window."""
+    safe_message = escape(message)
     color = "#4caf50" if success else "#ff5252"
     return f"""<!DOCTYPE html>
 <html><head><title>MCP OAuth</title></head>
 <body style="font-family:sans-serif; text-align:center; padding:2rem; background:#1a1a1a; color:#eee">
 <h2 style="color:{color}">{"Connected!" if success else "Error"}</h2>
-<p>{message}</p>
+<p>{safe_message}</p>
 <script>
   if (window.opener) {{
-    window.opener.postMessage({{ type: 'mcp_oauth_complete', success: {str(success).lower()} }}, '*');
+    window.opener.postMessage({{ type: 'mcp_oauth_complete', success: {str(success).lower()} }}, window.location.origin);
     setTimeout(() => window.close(), 1500);
   }}
 </script>

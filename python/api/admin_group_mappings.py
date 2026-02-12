@@ -3,6 +3,7 @@ from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response
+from python.helpers.error_response import safe_error_response
 
 
 def _mapping_to_dict(mapping) -> dict:
@@ -40,11 +41,7 @@ class AdminGroupMappings(ApiHandler):
                         "data": [_mapping_to_dict(m) for m in mappings],
                     }
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_group_mappings.list")
 
         elif action == "upsert":
             entra_group_id = input.get("entra_group_id")
@@ -65,11 +62,7 @@ class AdminGroupMappings(ApiHandler):
                     result = _mapping_to_dict(mapping)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_group_mappings.upsert")
 
         elif action == "delete":
             entra_group_id = input.get("entra_group_id")
@@ -84,11 +77,7 @@ class AdminGroupMappings(ApiHandler):
                     user_store.delete_group_mapping(db, entra_group_id)
                 return {"ok": True}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_group_mappings.delete")
 
         return Response(
             json.dumps({"error": f"Unknown action: {action}"}),

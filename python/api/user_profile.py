@@ -1,8 +1,8 @@
-import json
 from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response, g
+from python.helpers.error_response import safe_error_response
 
 
 class UserProfile(ApiHandler):
@@ -65,8 +65,4 @@ class UserProfile(ApiHandler):
 
                 return {"user": user_info, "memberships": memberships}
         except Exception as e:
-            return Response(
-                json.dumps({"error": str(e)}),
-                status=500,
-                mimetype="application/json",
-            )
+            return safe_error_response(e, context="user_profile")
