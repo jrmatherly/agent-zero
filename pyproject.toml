@@ -1,6 +1,6 @@
 [project]
 name = "apollos-ai"
-version = "0.2.0"
+version = "0.2.1"
 description = "Personal relentlessly optimistic agentic AI framework"
 readme = "README.md"
 license = "MIT"

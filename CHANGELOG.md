@@ -5,7 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [v0.2.1] - 2026-02-12
+
+
+### Bug Fixes
+
+- Enable raw mode for release task interactive prompt
+
+
+### Features
+
+- Add psycopg2-binary dependency and enhance Docker deployment with custom CA certificate support and Caddy domain configuration.
+
+
+### Miscellaneous Tasks
+
+- Add `release` mise task for automated version releases
+
+
+## [v0.2.0] - 2026-02-12
+
 
 ### Added
 
@@ -13,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Contextual reminder for mcps with multi-step-processes for agent to not get distracted, to continue process.
 - Mcp setup documentation
 - Contextual reminder for mcps with multi-step-processes for agent to not get distracted, to continue process.
+
 
 ### Bug Fixes
 
@@ -76,9 +96,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resolve LiteLLM proxy routing and OMP crash on macOS
 - Correct env var priority over YAML defaults for api_base resolution
 
+
 ### Bugfix
 
 - Json lead disabled
+
 
 ### CI/CD
 
@@ -86,6 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add paths-ignore, dependency review, and CodeQL security scanning
 - Add issue templates, PR template, and Dependabot configuration
 - Fix workflow failures and add Docker release pipeline
+- Exclude test files from CodeQL scanning
+
 
 ### Documentation
 
@@ -101,6 +125,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Clarify KMP_DUPLICATE_LIB_OK usage in env reference and example
 - Remove showcase video link from README.md
 - Remove installation video link and add 'Forked From' section.
+- Add internal memory documents for warnings and Docker, and refine developer guides with Docker commands and specific code block types.
+- Remove outdated video links, generalize product name references, and clarify environment variable configuration.
+- Add auth system env vars and update Serena memories
+- Clarify AUTH_LOGIN/AUTH_PASSWORD as legacy single-user fallback
+- Update branding environment variables, add WebSocket handler convention, and introduce new sections for authentication and common gotchas.
+
 
 ### Edit
 
@@ -124,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned up MCP logs and check attempts.
 - Removed unneeded dependencies to slim images for dockerfile install and cuda.
 
+
 ### Features
 
 - Fullscreen chat input (#269)
@@ -142,7 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tabbed Settings - implement support and move existing settings to 3 tab categories
 - Tunnel Manager
 - Deduplicate and optimize memory similarity threshold (#389)
-- Embedded MCP server for messaging with apollos-ai
+- Embedded MCP server for messaging with agent-zero
 - Implement support for MCP Servers (Claude Tools) - Part 1 Stdio Servers
 - MCP initial support for sse servers (Part 2)
 - Deep research agent as prompt folder (#408)
@@ -214,15 +245,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add branding tests and fix remaining user-facing references (Phase 9)
 - Replace A0 abbreviation branding with dynamic/neutral text (Phase 10)
 - Rename project from Agent Zero to Apollos AI and update associated agent files and configuration.
+- Introduce a comprehensive changelog, update the brand URL, and adjust project configurations and dependencies.
+- Introduce granular Docker build tasks and new push tasks for images.
+- Add `clean:all` mise task for a full project reset, removing all runtime data, logs, caches, and user settings.
+- Add Claude Code automations (hooks, skills, agents)
+- Add Phase 0 foundation for multi-user auth system
+- Add Phase 1 authentication with EntraID OIDC SSO and local fallback
+- Add Phase 2 user isolation with TenantContext multi-user data scoping
+- Add Phase 3 RBAC authorization with Casbin domain-scoped permissions
+- Add Phase 4 admin UI, tenant management, and MCP OAuth client
+- Broaden Content-Security-Policy to allow blob URLs and CDN resources for scripts, styles, and fonts.
+- Add Phase 5 MCP server OAuth auth, audit logging, and security hardening
+- Introduce `safe_error_response` helper to centralize and secure API error handling across various endpoints.
+- Add SSO auto-assignment, Azure enterprise setup guide, and cross-linked auth docs
+- Bootstrap EntraID group mappings from environment variable
+- Add Docker Compose deployment stack with Caddy and PostgreSQL profiles
+
 
 ### Fix
 
-- Dirty_jason.py the_parse_number method will gracefully handle cases where the parsed string is just '+', '-', or empty, returning it as a string instead of raising a ValueError.
+- Dirty_jason.py the _parse_number method will gracefully handle cases where the parsed string is just '+', '-', or empty, returning it as a string instead of raising a ValueError.
 - Input tool session management
 - Prevent auto-send when pressing Enter with a non-English input method (#700)
 - Proper task cancellation in scheduler, leakage in defer.py
 - API keys saved with correct API_KEY_ prefix
 - Remove hard-coded timeout caps on MCP tool execution
+
 
 ### Miscellaneous Tasks
 
@@ -236,6 +284,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update mise.lock tool versions (hk 1.36, ruff 0.15)
 - Update .env.example with LiteLLM Proxy defaults and correct brand URL
 - Bump apollos-ai version from 0.1.0 to 0.2.0
+- Refine user knowledge cleanup to preserve `.gitkeep` files and remove only empty subdirectories.
+- Update biome to version 2.3.15
+- Add authentication token cache and database files to cleanup script.
+- Add `docker:push` task to build and push app images to GHCR.
+
 
 ### Refactor
 
@@ -252,10 +305,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrate user data to usr/ + update frontend paths
 - Apply extensive code formatting, cleanup, and minor adjustments across the codebase, including the addition of Biome configuration.
 - Replace automated rate limiter tests with a manual test and apply minor formatting adjustments across various files.
+- Replace upstream update check with GitHub Releases API
+- Rename "Agent 0" to "Apollos" across documentation and update agent information display with branding.
+
 
 ### Scheduler
 
 - Use convenience methods for logging of special messages
+
+
+### Security
+
+- Remediate 30 CodeQL alerts across 8 vulnerability categories
+- Prevent session fixation and regenerate CSRF on login
+
 
 ### Styling
 
@@ -263,36 +326,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Polishing and consistency
 - Css cleanup and fix for mobile mem-dashboard; projects css polishing
 
+
 ### Update
 
 - Improved MCP setup and config, async handling for sessions, auto mcp install if present in settings config (on compose)
 - Improved MCP setup and config, async handling for sessions, auto mcp install if present in settings config (on compose)
+
 
 ### Updated
 
 - Mcp setup documentation to help guide first time users.
 - Mcp setup documentation to help guide first time users.
 
+
 ### WIP
 
 - Docker runtime
 - Docker runtime
 
+
 ### Agent
 
 - Retry on critical error
+
 
 ### Backend
 
 - Add mcp log type
 
+
 ### Bugfix
 
 - Settings delta clearing auth
 
+
 ### Cleanup
 
 - Webui folder cleanup (history)
+
 
 ### Migration
 
@@ -301,9 +372,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Force overwrite for scheduler, knowledge, and instruments dirs
 - Correct custom knowledge directory path mapping
 
+
 ### Ssh
 
 - Disable systemd OSC metadata
+
 
 ### Ui
 
