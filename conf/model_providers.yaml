@@ -17,7 +17,6 @@
 #                     This is useful for `api_base`, `extra_headers`, etc.
 
 chat:
-  # Upstream Apollos AI community LLM proxy — URL is a third-party service, not brandable
   litellm_proxy:
     name: LiteLLM Proxy
     litellm_provider: litellm_proxy
