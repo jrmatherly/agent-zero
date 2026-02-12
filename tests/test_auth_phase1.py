@@ -389,6 +389,36 @@ class TestAuthManagerSession:
             assert user.email == "user3@example.com"
             assert user.display_name == "User Three"
 
+    def test_establish_session_clears_stale_data_and_regenerates_csrf(
+        self, auth_db_wired
+    ):
+        """establish_session should clear pre-auth session data and regenerate CSRF token."""
+        from python.helpers.auth import AuthManager
+
+        app = Flask("test")
+        app.secret_key = "test-secret"
+
+        with app.test_request_context():
+            # Simulate pre-auth session with stale data
+            session["stale_key"] = "should_be_gone"
+            session["csrf_token"] = "old-csrf-token"
+
+            userinfo = {
+                "sub": "user-fixation",
+                "email": "fixation@example.com",
+                "auth_method": "local",
+            }
+            AuthManager.establish_session(userinfo)
+
+            # Stale data should be cleared
+            assert "stale_key" not in session
+            # CSRF token should be regenerated (not the old one)
+            assert session["csrf_token"] != "old-csrf-token"
+            assert len(session["csrf_token"]) > 20
+            # Auth data should still be set
+            assert session["user"]["id"] == "user-fixation"
+            assert session["authentication"] is True
+
     def test_clear_session(self):
         """clear_session should remove auth-related session keys."""
         from python.helpers.auth import AuthManager

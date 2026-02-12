@@ -13,6 +13,7 @@ Configuration (env vars or Flask app.config):
 """
 
 import os
+import secrets
 
 import msal
 from flask import Flask, session, url_for
@@ -225,6 +226,9 @@ class AuthManager:
             if userinfo.get("groups"):
                 user_store.sync_group_memberships(db, user, userinfo["groups"])
 
+        # Prevent session fixation: clear stale pre-auth data before populating
+        session.clear()
+        session["csrf_token"] = secrets.token_urlsafe(32)
         session["user"] = {
             "id": userinfo["sub"],
             "email": userinfo["email"],
