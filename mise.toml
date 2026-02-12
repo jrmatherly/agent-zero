@@ -206,6 +206,9 @@ docker buildx build \
   --build-arg CACHE_DATE=$(date +%Y-%m-%d:%H:%M:%S) \
   docker/run
 '''
+[tasks."docker:push"]
+description = "Build and push app image to GHCR (amd64, default branch: main)"
+depends = ["docker:push:base", "docker:push:app"]
 
 # --- Run tasks ---
 
