@@ -63,6 +63,9 @@ dependencies = [
     "wsproto>=1.2.0",
     "flask-limiter>=4.1.1",
     "flask-cors>=6.0.2",
+    "sqlalchemy>=2.0",
+    "alembic>=1.14",
+    "argon2-cffi>=25.1",
 ]
 
 [dependency-groups]
