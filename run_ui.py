@@ -45,9 +45,9 @@ from python.helpers import (
     process,
     runtime,
 )
-from python.helpers.auth import get_auth_manager, init_auth
 from python.helpers import settings as settings_helper
 from python.helpers.api import ApiHandler
+from python.helpers.auth import get_auth_manager, init_auth
 from python.helpers.extract_tools import load_classes_from_folder
 from python.helpers.files import get_abs_path
 from python.helpers.print_style import PrintStyle
@@ -126,10 +126,13 @@ def add_security_headers(response):
     # CSP: Alpine.js requires unsafe-eval; Socket.IO needs ws: connect-src
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:; "
+        "script-src-elem 'self' 'unsafe-inline' blob: https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline'; "
+        "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
         "img-src 'self' data: blob:; "
-        "connect-src 'self' ws: wss:; "
+        "connect-src 'self' ws: wss: https://cdn.jsdelivr.net; "
         "frame-ancestors 'none';"
     )
     return response
