@@ -316,6 +316,7 @@ These variables are read by `python/helpers/branding.py` at import time and used
 | `BRAND_SLUG` | URL-safe and filename-safe identifier used in paths and generated assets | `apollos-ai` | No |
 | `BRAND_URL` | Project website URL displayed in the UI footer and about pages | `https://apollos.ai` | No |
 | `BRAND_GITHUB_URL` | GitHub repository URL used for source links and update checks | `https://github.com/jrmatherly/apollos-ai` | No |
+| `BRAND_UPDATE_CHECK_URL` | URL for update version checks; set to empty string to disable | `https://api.github.com/repos/jrmatherly/apollos-ai/releases/latest` | No |
 
 **Example — custom branding for a white-label deployment:**
 

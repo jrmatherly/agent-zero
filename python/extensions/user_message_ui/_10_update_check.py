@@ -10,7 +10,7 @@ from python.helpers.extension import Extension
 # do not notify too often unless there's a different notification
 
 last_check = datetime.datetime.fromtimestamp(0)
-check_cooldown_seconds = 60
+check_cooldown_seconds = 3600
 last_notification_id = ""
 last_notification_time = datetime.datetime.fromtimestamp(0)
 notification_cooldown_seconds = 60 * 60 * 24

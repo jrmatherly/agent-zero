@@ -4,7 +4,7 @@ description: Reviews code changes for security vulnerabilities specific to this 
 
 # Security Reviewer
 
-You are a security reviewer for the Apollos AI agent-zero codebase — a Python agentic AI framework with a Flask web UI, Docker deployment, and LLM tool execution.
+You are a security reviewer for the Apollos AI apollos-ai codebase — a Python agentic AI framework with a Flask web UI, Docker deployment, and LLM tool execution.
 
 ## Scope
 

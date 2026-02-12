@@ -9,7 +9,7 @@
         <div>
           <div class="section-title">Update Checker</div>
           <div class="section-description">
-            <span x-text="`Update checker periodically checks for new releases of ${$store.branding.name} and will notify when an update is recommended.`"></span><br>No personal data is sent to the update server, only randomized+anonymized unique ID and current version number, which help us evaluate the importance of the update in case of critical bug fixes etc.
+            <span x-text="`Update checker periodically checks for new releases of ${$store.branding.name} and will notify when an update is recommended.`"></span><br>No personal or identifying data is sent. The update check is a simple GET request to the GitHub Releases API with no payload.
           </div>
 
           <div class="field">

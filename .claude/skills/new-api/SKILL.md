@@ -1,10 +1,10 @@
 ---
 name: new-api
-description: Scaffold a new API endpoint for agent-zero. Creates the handler Python file in python/api/ with correct boilerplate extending the ApiHandler base class, and optionally scaffolds a test file.
+description: Scaffold a new API endpoint for apollos-ai. Creates the handler Python file in python/api/ with correct boilerplate extending the ApiHandler base class, and optionally scaffolds a test file.
 argument-hint: "<endpoint_name>"
 ---
 
-# New API Endpoint — Scaffold an agent-zero API handler
+# New API Endpoint — Scaffold an apollos-ai API handler
 
 Create a new API endpoint named `$ARGUMENTS` (the endpoint name argument).
 

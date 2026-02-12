@@ -142,7 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Tabbed Settings - implement support and move existing settings to 3 tab categories
 - Tunnel Manager
 - Deduplicate and optimize memory similarity threshold (#389)
-- Embedded MCP server for messaging with agent-zero
+- Embedded MCP server for messaging with apollos-ai
 - Implement support for MCP Servers (Claude Tools) - Part 1 Stdio Servers
 - MCP initial support for sse servers (Part 2)
 - Deep research agent as prompt folder (#408)

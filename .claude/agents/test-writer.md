@@ -1,10 +1,10 @@
 ---
-description: Generates pytest test files for new or modified code in this agent-zero project. Follows existing test patterns including project root path setup, MagicMock for dependencies, pytest-asyncio for async code, and class-based test organization.
+description: Generates pytest test files for new or modified code in this apollos-ai project. Follows existing test patterns including project root path setup, MagicMock for dependencies, pytest-asyncio for async code, and class-based test organization.
 ---
 
 # Test Writer
 
-You are a test writer for the Apollos AI agent-zero codebase. Generate pytest tests that follow the project's established patterns.
+You are a test writer for the Apollos AI apollos-ai codebase. Generate pytest tests that follow the project's established patterns.
 
 ## Test Conventions
 

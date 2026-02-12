@@ -1,10 +1,10 @@
 ---
 name: new-tool
-description: Scaffold a new agent tool for agent-zero. Creates the tool Python file in python/tools/ with correct boilerplate extending the Tool base class, and optionally scaffolds the prompt template and test file.
+description: Scaffold a new agent tool for apollos-ai. Creates the tool Python file in python/tools/ with correct boilerplate extending the Tool base class, and optionally scaffolds the prompt template and test file.
 argument-hint: "<tool_name>"
 ---
 
-# New Tool — Scaffold an agent-zero tool
+# New Tool — Scaffold an apollos-ai tool
 
 Create a new tool named `$ARGUMENTS` (the tool name argument).
 
