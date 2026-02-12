@@ -3,6 +3,7 @@ from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response
+from python.helpers.error_response import safe_error_response
 
 
 def _team_to_dict(team) -> dict:
@@ -39,11 +40,7 @@ class AdminTeams(ApiHandler):
                     teams = user_store.list_teams(db, org_id)
                     return {"ok": True, "data": [_team_to_dict(t) for t in teams]}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_teams.list")
 
         elif action == "create":
             org_id = input.get("org_id")
@@ -62,11 +59,7 @@ class AdminTeams(ApiHandler):
                     result = _team_to_dict(team)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_teams.create")
 
         elif action == "update":
             team_id = input.get("team_id")
@@ -86,11 +79,7 @@ class AdminTeams(ApiHandler):
                     result = _team_to_dict(team)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_teams.update")
 
         elif action == "delete":
             team_id = input.get("team_id")
@@ -105,11 +94,7 @@ class AdminTeams(ApiHandler):
                     user_store.delete_team(db, team_id)
                 return {"ok": True}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_teams.delete")
 
         return Response(
             json.dumps({"error": f"Unknown action: {action}"}),

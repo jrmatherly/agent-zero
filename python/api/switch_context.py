@@ -3,6 +3,7 @@ from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response, g, session
+from python.helpers.error_response import safe_error_response
 
 
 class SwitchContext(ApiHandler):
@@ -60,11 +61,7 @@ class SwitchContext(ApiHandler):
                             mimetype="application/json",
                         )
         except Exception as e:
-            return Response(
-                json.dumps({"error": str(e)}),
-                status=500,
-                mimetype="application/json",
-            )
+            return safe_error_response(e, context="switch_context")
 
         # Update session context
         session["user"]["org_id"] = org_id

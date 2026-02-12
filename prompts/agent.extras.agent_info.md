@@ -1,4 +1,4 @@
 # Agent info
-Agent Number: {{number}}
-Profile: {{profile}}
+Agent Name: {{brand_name}} ({{profile}})
+Agent ID: {{number}}
 LLM: {{llm}}

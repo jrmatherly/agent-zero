@@ -85,7 +85,7 @@ Agent communicates via **JSON responses**:
 
 ## Multi-Agent Hierarchy
 
-- Agent 0's superior = human user
+- Apollos's superior = human user
 - Each agent can spawn subordinates via `call_subordinate` tool
 - Subordinates report back to their superior
 - Profiles specialize subordinates for specific tasks

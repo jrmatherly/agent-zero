@@ -3,6 +3,7 @@ from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response
+from python.helpers.error_response import safe_error_response
 
 
 def _user_to_dict(user) -> dict:
@@ -39,11 +40,7 @@ class AdminUsers(ApiHandler):
                     users = user_store.list_users(db, org_id=org_id, team_id=team_id)
                     return {"ok": True, "data": [_user_to_dict(u) for u in users]}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_users.list")
 
         elif action == "invite":
             email = input.get("email")
@@ -73,11 +70,7 @@ class AdminUsers(ApiHandler):
                     result = _user_to_dict(user)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_users.invite")
 
         elif action == "update_role":
             user_id = input.get("user_id")
@@ -97,11 +90,7 @@ class AdminUsers(ApiHandler):
                     )
                 return {"ok": True}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_users.update_role")
 
         elif action == "deactivate":
             user_id = input.get("user_id")
@@ -116,11 +105,7 @@ class AdminUsers(ApiHandler):
                     user_store.deactivate_user(db, user_id)
                 return {"ok": True}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_users.deactivate")
 
         return Response(
             json.dumps({"error": f"Unknown action: {action}"}),

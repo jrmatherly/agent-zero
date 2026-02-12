@@ -76,6 +76,87 @@ def _seed_defaults() -> None:
             )
 
 
+def _seed_group_mappings() -> None:
+    """Seed Entra ID group-to-org/team mappings from environment variable.
+
+    Reads ``A0_SET_SSO_GROUP_MAPPINGS`` which contains semicolon-delimited
+    entries of the form ``entra_group_id:org_slug:team_slug:role``.
+    ``team_slug`` and ``role`` are optional (defaults: no team, role="member").
+    """
+    raw = os.environ.get("A0_SET_SSO_GROUP_MAPPINGS", "")
+    if not raw.strip():
+        return
+
+    entries = raw.split(";")
+    count = 0
+
+    with auth_db.get_session() as db:
+        for entry in entries:
+            entry = entry.strip()
+            if not entry:
+                continue
+
+            fields = [f.strip() for f in entry.split(":")]
+            if len(fields) < 2:
+                PrintStyle.warning(
+                    f"Auth bootstrap: skipping malformed group mapping "
+                    f"(need at least 2 fields): '{entry}'"
+                )
+                continue
+
+            entra_group_id = fields[0]
+            org_slug = fields[1]
+            team_slug = fields[2] if len(fields) > 2 else ""
+            role = fields[3] if len(fields) > 3 else "member"
+
+            if not entra_group_id or not org_slug:
+                PrintStyle.warning(
+                    f"Auth bootstrap: skipping group mapping with empty "
+                    f"required fields: '{entry}'"
+                )
+                continue
+
+            # Resolve org by slug
+            org = db.query(user_store.Organization).filter_by(slug=org_slug).first()
+            if not org:
+                PrintStyle.warning(
+                    f"Auth bootstrap: org '{org_slug}' not found, "
+                    f"skipping group mapping for '{entra_group_id}'"
+                )
+                continue
+
+            # Resolve team by (org_id, slug) if provided
+            team_id = None
+            if team_slug:
+                team = (
+                    db.query(user_store.Team)
+                    .filter_by(org_id=org.id, slug=team_slug)
+                    .first()
+                )
+                if not team:
+                    PrintStyle.warning(
+                        f"Auth bootstrap: team '{team_slug}' not found in "
+                        f"org '{org_slug}', skipping group mapping for "
+                        f"'{entra_group_id}'"
+                    )
+                    continue
+                team_id = team.id
+
+            user_store.upsert_group_mapping(
+                db,
+                entra_group_id=entra_group_id,
+                org_id=org.id,
+                team_id=team_id,
+                role=role,
+            )
+            count += 1
+
+    if count:
+        PrintStyle.info(
+            f"Auth bootstrap: seeded {count} group mapping(s) from environment."
+        )
+
+
 def bootstrap() -> None:
     """Initialize auth database and seed defaults.
 
@@ -91,6 +172,9 @@ def bootstrap() -> None:
 
     # Seed defaults
     _seed_defaults()
+
+    # Seed SSO group mappings from environment
+    _seed_group_mappings()
 
     # Initialize RBAC enforcer and seed default policies
     try:

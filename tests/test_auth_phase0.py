@@ -639,3 +639,169 @@ class TestAuthBootstrap:
             mock_init.assert_called_once()
             mock_migrate.assert_called_once()
             mock_seed.assert_called_once()
+
+
+# ===================================================================
+# 5. Group mapping bootstrap tests
+# ===================================================================
+
+
+class TestGroupMappingBootstrap:
+    """Tests for _seed_group_mappings() env-var-based group mapping seeding."""
+
+    @pytest.fixture
+    def _bootstrap_db(self, db_session: Session):
+        """Wire auth_db module to use the in-memory test engine."""
+        from python.helpers import auth_db
+
+        engine = db_session.get_bind()
+        _Session = sessionmaker(bind=engine)
+
+        original_engine = auth_db._engine
+        original_session_local = auth_db._SessionLocal
+
+        auth_db._engine = engine
+        auth_db._SessionLocal = _Session
+
+        yield db_session
+
+        auth_db._engine = original_engine
+        auth_db._SessionLocal = original_session_local
+
+    @pytest.fixture
+    def seeded_db(self, _bootstrap_db, monkeypatch):
+        """Seed default org and team, then return the session."""
+        from python.helpers.auth_bootstrap import _seed_defaults
+
+        monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+        monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+        _seed_defaults()
+        return _bootstrap_db
+
+    def test_no_env_var_is_noop(self, seeded_db, monkeypatch):
+        """Without A0_SET_SSO_GROUP_MAPPINGS, no mappings are created."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.delenv("A0_SET_SSO_GROUP_MAPPINGS", raising=False)
+        _seed_group_mappings()
+
+        assert seeded_db.query(EntraGroupMapping).count() == 0
+
+    def test_empty_env_var_is_noop(self, seeded_db, monkeypatch):
+        """An empty A0_SET_SSO_GROUP_MAPPINGS creates no mappings."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv("A0_SET_SSO_GROUP_MAPPINGS", "")
+        _seed_group_mappings()
+
+        assert seeded_db.query(EntraGroupMapping).count() == 0
+
+    def test_single_mapping_with_team(self, seeded_db, monkeypatch):
+        """A single entry with org and team creates one mapping."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv(
+            "A0_SET_SSO_GROUP_MAPPINGS", "aad-group-1:default:default:member"
+        )
+        _seed_group_mappings()
+
+        mappings = seeded_db.query(EntraGroupMapping).all()
+        assert len(mappings) == 1
+        m = mappings[0]
+        assert m.entra_group_id == "aad-group-1"
+        assert m.org_id is not None
+        assert m.team_id is not None
+        assert m.role == "member"
+
+    def test_single_mapping_org_only(self, seeded_db, monkeypatch):
+        """An entry with empty team_slug creates an org-only mapping."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv("A0_SET_SSO_GROUP_MAPPINGS", "aad-group-1:default::admin")
+        _seed_group_mappings()
+
+        mappings = seeded_db.query(EntraGroupMapping).all()
+        assert len(mappings) == 1
+        m = mappings[0]
+        assert m.entra_group_id == "aad-group-1"
+        assert m.org_id is not None
+        assert m.team_id is None
+        assert m.role == "admin"
+
+    def test_multiple_mappings(self, seeded_db, monkeypatch):
+        """Multiple semicolon-separated entries create multiple mappings."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv(
+            "A0_SET_SSO_GROUP_MAPPINGS",
+            "g1:default:default:member;g2:default:default:team_lead",
+        )
+        _seed_group_mappings()
+
+        mappings = seeded_db.query(EntraGroupMapping).all()
+        assert len(mappings) == 2
+        roles = {m.role for m in mappings}
+        assert roles == {"member", "team_lead"}
+
+    def test_idempotent_upsert(self, seeded_db, monkeypatch):
+        """Running _seed_group_mappings() twice does not duplicate mappings."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv("A0_SET_SSO_GROUP_MAPPINGS", "g1:default:default:member")
+        _seed_group_mappings()
+        _seed_group_mappings()
+
+        assert seeded_db.query(EntraGroupMapping).count() == 1
+
+    def test_role_update_on_rerun(self, seeded_db, monkeypatch):
+        """Re-running with a changed role updates the existing mapping."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv("A0_SET_SSO_GROUP_MAPPINGS", "g1:default:default:member")
+        _seed_group_mappings()
+
+        monkeypatch.setenv("A0_SET_SSO_GROUP_MAPPINGS", "g1:default:default:team_lead")
+        _seed_group_mappings()
+
+        mappings = seeded_db.query(EntraGroupMapping).all()
+        assert len(mappings) == 1
+        assert mappings[0].role == "team_lead"
+
+    def test_invalid_entries_skipped_gracefully(self, seeded_db, monkeypatch):
+        """Malformed and unresolvable entries are skipped; valid ones succeed."""
+        from python.helpers.auth_bootstrap import _seed_group_mappings
+        from python.helpers.user_store import EntraGroupMapping
+
+        monkeypatch.setenv(
+            "A0_SET_SSO_GROUP_MAPPINGS",
+            "malformed;:;g1:default:default:member;g2:nonexistent_org:default:member",
+        )
+        _seed_group_mappings()
+
+        mappings = seeded_db.query(EntraGroupMapping).all()
+        assert len(mappings) == 1
+        assert mappings[0].entra_group_id == "g1"
+
+    def test_bootstrap_calls_seed_group_mappings(self, monkeypatch):
+        """bootstrap() must call _seed_group_mappings()."""
+        from python.helpers import auth_bootstrap
+
+        monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+        monkeypatch.delenv("ADMIN_PASSWORD", raising=False)
+
+        with (
+            patch.object(auth_bootstrap.auth_db, "init_db"),
+            patch.object(auth_bootstrap, "_run_migrations"),
+            patch.object(auth_bootstrap, "_seed_defaults"),
+            patch.object(auth_bootstrap, "_seed_group_mappings") as mock_seed_groups,
+        ):
+            auth_bootstrap.bootstrap()
+
+            mock_seed_groups.assert_called_once()

@@ -70,6 +70,125 @@ Microsoft Entra ID (Azure AD) app registration for single sign-on via OIDC autho
 4. Set `OIDC_TENANT_ID`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET` in `usr/.env`
 5. Set `VAULT_MASTER_KEY` for encrypted MSAL token cache persistence
 
+### SSO Auto-Assignment
+
+Controls automatic membership provisioning for JIT-provisioned SSO users who don't have EntraID group mappings configured.
+
+| Variable | Description | Values | Default | Required |
+|----------|-------------|--------|---------|----------|
+| `A0_SET_SSO_AUTO_ASSIGN` | Auto-assign SSO users to the default org/team on first login | `true`, `false` | `true` | No |
+| `A0_SET_SSO_DEFAULT_ROLE` | Role assigned to auto-provisioned SSO users | `member`, `viewer` | `member` | No |
+
+When enabled (default), SSO users immediately have access after authenticating. When disabled, SSO users receive 403 until an admin assigns them via the admin API or EntraID group mappings are configured.
+
+### SSO Group Mapping Bootstrap
+
+Seed EntraID group-to-org/team mappings at startup via environment variable, eliminating the need for manual admin API calls. Mappings are upserted (created or updated) on every startup, making this safe for repeated runs.
+
+| Variable | Description | Values | Default | Required |
+|----------|-------------|--------|---------|----------|
+| `A0_SET_SSO_GROUP_MAPPINGS` | Semicolon-delimited EntraID group mapping definitions | See format below | _(empty)_ | No |
+
+**Format:** `entra_group_id:org_slug:team_slug:role` entries separated by semicolons.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `entra_group_id` | Yes | Azure AD security group Object ID (GUID from Azure Portal) |
+| `org_slug` | Yes | Organization slug to map to (e.g., `default`) |
+| `team_slug` | No | Team slug within the org (empty = org-level mapping only) |
+| `role` | No | Role to assign: `owner`, `admin`, `lead`, `member` (default), `viewer` |
+
+**Example:**
+
+```bash
+# Map two Azure AD groups to the default org/team with different roles
+A0_SET_SSO_GROUP_MAPPINGS="e1a2b3c4-...:default:default:member;f5d6e7a8-...:default:default:team_lead"
+
+# Org-level mapping only (no team assignment)
+A0_SET_SSO_GROUP_MAPPINGS="a9b0c1d2-...:default::org_admin"
+```
+
+> **Note:** Orgs and teams referenced by slug must already exist (created via admin API or the default bootstrap). Invalid entries (unknown slugs, malformed format) are logged as warnings and skipped without blocking startup. Mappings defined here are additive — they do not remove mappings configured via the admin API.
+
+### EntraID Group-Based Role Assignment
+
+For production deployments, you can map EntraID security groups to local org/team memberships with specific roles. This gives fine-grained control over who gets what access level — different Azure groups can map to different roles (owner, admin, member, viewer).
+
+**Step 1: Configure group claims in Azure Portal**
+
+1. Go to **Azure Portal** > **App registrations** > your OIDC SSO app
+2. Select **Token configuration** > **Add groups claim**
+3. Select **Security groups** (or **All groups** if using Microsoft 365 groups)
+4. Under **ID token**, check **Group ID**
+5. Click **Add**
+
+If your tenant has users in more than 200 groups, Entra ID uses a "group overage" claim instead of embedding all group IDs. The app automatically handles this by fetching groups from the Microsoft Graph API using the access token.
+
+> **Graph API permissions (optional, for group overage):** If your users belong to >200 groups, add the `GroupMember.Read.All` delegated permission to your app registration and grant admin consent. This allows the app to fetch the full group list when the ID token uses overage.
+
+**Step 2: Create group mappings via the admin API**
+
+Map each EntraID security group to a local organization and (optionally) team with a role:
+
+```bash
+# List organizations to find the default org ID
+curl -X POST http://localhost:5000/admin_orgs \
+  -H "Content-Type: application/json" \
+  -b <admin-session-cookie> \
+  -d '{"action": "list"}'
+
+# List teams within that org
+curl -X POST http://localhost:5000/admin_teams \
+  -H "Content-Type: application/json" \
+  -b <admin-session-cookie> \
+  -d '{"action": "list", "org_id": "<ORG_ID>"}'
+
+# Map an EntraID group → org/team with role
+curl -X POST http://localhost:5000/admin_group_mappings \
+  -H "Content-Type: application/json" \
+  -b <admin-session-cookie> \
+  -d '{
+    "action": "upsert",
+    "entra_group_id": "<AZURE-SECURITY-GROUP-OBJECT-ID>",
+    "org_id": "<ORG_ID>",
+    "team_id": "<TEAM_ID>",
+    "role": "member"
+  }'
+```
+
+Find the Azure security group's Object ID in **Azure Portal** > **Groups** > select the group > **Overview** > **Object Id**.
+
+**Step 3: Disable auto-assignment (optional)**
+
+Once group mappings are configured, disable auto-assignment so that only users in mapped groups get access:
+
+```bash
+# usr/.env
+A0_SET_SSO_AUTO_ASSIGN=false
+```
+
+**Available roles:**
+
+| Role | Org-level | Team-level | Description |
+|------|-----------|------------|-------------|
+| `owner` | `org_owner` | — | Full access to all org resources |
+| `admin` | `org_admin` | — | Manage org settings, admin panel, MCP, knowledge |
+| `lead` | — | `team_lead` | Full access within team scope |
+| `member` | `member` | `member` | Standard access: create chats, read settings, upload knowledge |
+| `viewer` | `viewer` | `viewer` | Read-only access |
+
+Roles cascade: when a group mapping specifies `role: "admin"` at the org level, the user gets `org_admin` Casbin policies. At the team level, the same user needs a separate team mapping (or auto-assignment) for team-scoped resources.
+
+**How it works at login:**
+
+1. User authenticates via Entra ID SSO
+2. `process_callback()` extracts group IDs from the ID token claims (or fetches via Graph API)
+3. `sync_group_memberships()` looks up each group ID in the `entra_group_mappings` table
+4. For each match, creates/updates `OrgMembership` and `TeamMembership` records with the mapped role
+5. Removes team memberships for groups the user is no longer in (group sync is idempotent)
+6. `sync_user_roles()` reads the memberships and creates Casbin grouping policies
+7. RBAC enforcement uses those policies for every API request
+
 ## MCP Server OAuth (Inbound Auth)
 
 Optional Entra ID OAuth for inbound MCP connections (IDE clients like VS Code, Cursor, Claude Code). Managed by `python/helpers/mcp_server.py` via FastMCP's `AzureProvider`. When all three required variables are set, the MCP server accepts OAuth Bearer tokens alongside the existing token-in-path authentication.

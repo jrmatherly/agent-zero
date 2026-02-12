@@ -3,6 +3,7 @@ from typing import Any
 
 from python.helpers import auth_db, user_store
 from python.helpers.api import ApiHandler, Request, Response
+from python.helpers.error_response import safe_error_response
 
 
 def _org_to_dict(org) -> dict:
@@ -32,11 +33,7 @@ class AdminOrgs(ApiHandler):
                     orgs = user_store.list_organizations(db)
                     return {"ok": True, "data": [_org_to_dict(o) for o in orgs]}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_orgs.list")
 
         elif action == "create":
             name = input.get("name")
@@ -54,11 +51,7 @@ class AdminOrgs(ApiHandler):
                     result = _org_to_dict(org)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_orgs.create")
 
         elif action == "update":
             org_id = input.get("org_id")
@@ -78,11 +71,7 @@ class AdminOrgs(ApiHandler):
                     result = _org_to_dict(org)
                 return {"ok": True, "data": result}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_orgs.update")
 
         elif action == "deactivate":
             org_id = input.get("org_id")
@@ -97,11 +86,7 @@ class AdminOrgs(ApiHandler):
                     user_store.deactivate_organization(db, org_id)
                 return {"ok": True}
             except Exception as e:
-                return Response(
-                    json.dumps({"error": str(e)}),
-                    status=500,
-                    mimetype="application/json",
-                )
+                return safe_error_response(e, context="admin_orgs.deactivate")
 
         return Response(
             json.dumps({"error": f"Unknown action: {action}"}),

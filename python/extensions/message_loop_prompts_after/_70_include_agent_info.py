@@ -1,4 +1,5 @@
 from agent import LoopData
+from python.helpers.branding import BRAND_NAME
 from python.helpers.extension import Extension
 
 
@@ -7,8 +8,9 @@ class IncludeAgentInfo(Extension):
         # read prompt
         agent_info_prompt = self.agent.read_prompt(
             "agent.extras.agent_info.md",
+            brand_name=BRAND_NAME,
             number=self.agent.number,
-            profile=self.agent.config.profile or "Default",
+            profile=self.agent.config.profile or "default",
             llm=self.agent.config.chat_model.provider
             + "/"
             + self.agent.config.chat_model.name,

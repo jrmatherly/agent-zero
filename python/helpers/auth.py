@@ -226,6 +226,10 @@ class AuthManager:
             if userinfo.get("groups"):
                 user_store.sync_group_memberships(db, user, userinfo["groups"])
 
+            # Auto-assign SSO users to default org/team when they have no
+            # memberships (JIT-provisioned without EntraID group mappings).
+            _auto_assign_default_memberships(db, user)
+
             # Capture user attributes for session before leaving DB context
             is_system_admin = bool(user.is_system_admin)
             # Resolve primary org/team from first membership
@@ -276,6 +280,64 @@ class AuthManager:
     def get_current_user() -> dict | None:
         """Return the current user dict from session, or None."""
         return session.get("user")
+
+
+# ---------------------------------------------------------------------------
+# SSO auto-assignment helper
+# ---------------------------------------------------------------------------
+
+
+def _auto_assign_default_memberships(
+    db: "Session",  # noqa: F821 — forward ref to sqlalchemy.orm.Session
+    user: "user_store.User",
+) -> None:
+    """Auto-assign a user to the default org/team if they have no memberships.
+
+    Controlled by env vars:
+        ``A0_SET_SSO_AUTO_ASSIGN`` — ``"true"`` (default) to enable.
+        ``A0_SET_SSO_DEFAULT_ROLE`` — Role to assign (default ``"member"``).
+
+    This bridges the gap for JIT-provisioned SSO users who don't have
+    EntraID group mappings configured.  When disabled, SSO users without
+    group mappings will receive 403 until manually assigned by an admin.
+    """
+    if os.environ.get("A0_SET_SSO_AUTO_ASSIGN", "true").lower() != "true":
+        return
+
+    default_role = os.environ.get("A0_SET_SSO_DEFAULT_ROLE", "member")
+
+    if not user.org_memberships:
+        default_org = (
+            db.query(user_store.Organization).filter_by(slug="default").first()
+        )
+        if default_org:
+            org_mem = user_store.OrgMembership(
+                user_id=user.id,
+                org_id=default_org.id,
+                role=default_role,
+            )
+            db.add(org_mem)
+            db.flush()
+            PrintStyle.info(
+                f"Auto-assigned user {user.id} to default org as {default_role}"
+            )
+
+    if not user.team_memberships:
+        default_team = db.query(user_store.Team).filter_by(slug="default").first()
+        if default_team:
+            team_mem = user_store.TeamMembership(
+                user_id=user.id,
+                team_id=default_team.id,
+                role=default_role,
+            )
+            db.add(team_mem)
+            db.flush()
+            PrintStyle.info(
+                f"Auto-assigned user {user.id} to default team as {default_role}"
+            )
+
+    # Refresh so relationships are visible to the caller
+    db.refresh(user)
 
 
 # ---------------------------------------------------------------------------
