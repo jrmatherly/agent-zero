@@ -467,6 +467,8 @@ find . -path ./.venv -prune -o -type f -name '*.pyc' -print -delete 2>/dev/null 
 echo "→ User settings & secrets..."
 rm -f usr/settings.json
 rm -f usr/secrets.env
+rm -f usr/auth_token_cache.bin
+rm -f usr/auth.db
 
 # --- 3. Chat history ---
 echo "→ Chat history..."
