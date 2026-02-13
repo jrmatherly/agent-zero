@@ -1034,7 +1034,7 @@ class TaskScheduler:
                     id=str(uuid.uuid4()),
                 )
 
-                agent.hist_add_user_message(
+                await agent.hist_add_user_message(
                     UserMessage(
                         message=task_prompt,
                         system_message=[current_task.system_prompt],

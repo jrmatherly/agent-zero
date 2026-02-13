@@ -319,60 +319,84 @@ def sync_group_memberships(db: Session, user: User, group_ids: list[str]) -> Non
         .all()
     )
 
-    # Track which (org, team) combos the user should belong to
-    desired_memberships: set[tuple[str, str]] = set()
+    # Collect desired org_ids and team_ids from mappings
+    desired_org_ids: set[str] = set()
+    desired_team_ids: set[str] = set()
+    # Map org_id/team_id -> role from the mapping for upsert
+    org_role_map: dict[str, str] = {}
+    team_role_map: dict[str, str] = {}
 
     for mapping in current_mappings:
         if mapping.org_id:
-            # Ensure org membership exists
-            org_mem = (
-                db.query(OrgMembership)
-                .filter_by(user_id=user.id, org_id=mapping.org_id)
-                .first()
-            )
-            if not org_mem:
-                org_mem = OrgMembership(
-                    user_id=user.id,
-                    org_id=mapping.org_id,
-                    role=mapping.role,
-                )
-                db.add(org_mem)
-            else:
-                org_mem.role = mapping.role
-
+            desired_org_ids.add(mapping.org_id)
+            org_role_map[mapping.org_id] = mapping.role
         if mapping.team_id:
-            desired_memberships.add((mapping.org_id, mapping.team_id))
-            team_mem = (
-                db.query(TeamMembership)
-                .filter_by(user_id=user.id, team_id=mapping.team_id)
-                .first()
+            desired_team_ids.add(mapping.team_id)
+            team_role_map[mapping.team_id] = mapping.role
+
+    # Batch-fetch existing org memberships for this user (single query)
+    existing_org_mems: dict[str, OrgMembership] = {}
+    if desired_org_ids:
+        for mem in (
+            db.query(OrgMembership)
+            .filter(
+                OrgMembership.user_id == user.id,
+                OrgMembership.org_id.in_(desired_org_ids),
             )
-            if not team_mem:
-                team_mem = TeamMembership(
-                    user_id=user.id,
-                    team_id=mapping.team_id,
-                    role=mapping.role,
-                )
-                db.add(team_mem)
-            else:
-                team_mem.role = mapping.role
+            .all()
+        ):
+            existing_org_mems[mem.org_id] = mem
+
+    # Upsert org memberships
+    for org_id in desired_org_ids:
+        role = org_role_map[org_id]
+        if org_id in existing_org_mems:
+            existing_org_mems[org_id].role = role
+        else:
+            db.add(OrgMembership(user_id=user.id, org_id=org_id, role=role))
+
+    # Batch-fetch existing team memberships for this user (single query)
+    existing_team_mems: dict[str, TeamMembership] = {}
+    if desired_team_ids:
+        for mem in (
+            db.query(TeamMembership)
+            .filter(
+                TeamMembership.user_id == user.id,
+                TeamMembership.team_id.in_(desired_team_ids),
+            )
+            .all()
+        ):
+            existing_team_mems[mem.team_id] = mem
+
+    # Upsert team memberships
+    for team_id in desired_team_ids:
+        role = team_role_map[team_id]
+        if team_id in existing_team_mems:
+            existing_team_mems[team_id].role = role
+        else:
+            db.add(TeamMembership(user_id=user.id, team_id=team_id, role=role))
 
     # Remove team memberships for groups user is no longer in
     # (only remove those that were originally created via group sync)
+    # Single query to get all mapped team IDs
     all_mapped_team_ids = {
-        m.team_id for m in db.query(EntraGroupMapping).all() if m.team_id
-    }
-    current_team_mems = (
-        db.query(TeamMembership)
-        .filter(
-            TeamMembership.user_id == user.id,
-            TeamMembership.team_id.in_(all_mapped_team_ids),
-        )
+        m.team_id
+        for m in db.query(EntraGroupMapping.team_id)
+        .filter(EntraGroupMapping.team_id != None)  # noqa: E711
         .all()
-    )
-    for mem in current_team_mems:
-        if mem.team_id not in {t for _, t in desired_memberships}:
-            db.delete(mem)
+    }
+    if all_mapped_team_ids:
+        current_team_mems_list = (
+            db.query(TeamMembership)
+            .filter(
+                TeamMembership.user_id == user.id,
+                TeamMembership.team_id.in_(all_mapped_team_ids),
+            )
+            .all()
+        )
+        for mem in current_team_mems_list:
+            if mem.team_id not in desired_team_ids:
+                db.delete(mem)
 
 
 # ---------------------------------------------------------------------------

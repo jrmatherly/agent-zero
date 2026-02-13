@@ -206,7 +206,7 @@ class MCPTool(Tool):
 
         final_text_for_agent = raw_tool_response
 
-        self.agent.hist_add_tool_result(self.name, final_text_for_agent)
+        await self.agent.hist_add_tool_result(self.name, final_text_for_agent)
         (
             PrintStyle(
                 font_color="#1B4F72", background_color="white", padding=True, bold=True

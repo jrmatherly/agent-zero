@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os
@@ -391,7 +392,7 @@ class Memory:
                 break
 
         if tot:
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return removed
 
     async def delete_documents_by_ids(self, ids: list[str]):
@@ -404,7 +405,7 @@ class Memory:
             await self.db.adelete(ids=rem_ids)
 
         if rem_docs:
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return rem_docs
 
     async def insert_text(self, text, metadata: dict = {}):
@@ -424,18 +425,18 @@ class Memory:
                     doc.metadata["area"] = Memory.Area.MAIN.value
 
             await self.db.aadd_documents(documents=docs, ids=ids)
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return ids
 
     async def update_documents(self, docs: list[Document]):
         ids = [doc.metadata["id"] for doc in docs]
         await self.db.adelete(ids=ids)  # delete originals
         ins = await self.db.aadd_documents(documents=docs, ids=ids)  # add updated
-        self._save_db()  # persist
+        await self._save_db()  # persist
         return ins
 
-    def _save_db(self):
-        Memory._save_db_file(self.db, self.memory_subdir)
+    async def _save_db(self):
+        await asyncio.to_thread(Memory._save_db_file, self.db, self.memory_subdir)
 
     def _generate_doc_id(self):
         while True:

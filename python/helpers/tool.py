@@ -63,7 +63,9 @@ class Tool:
 
     async def after_execution(self, response: Response, **kwargs):
         text = sanitize_string(response.message.strip())
-        self.agent.hist_add_tool_result(self.name, text, **(response.additional or {}))
+        await self.agent.hist_add_tool_result(
+            self.name, text, **(response.additional or {})
+        )
         PrintStyle(
             font_color="#1B4F72", background_color="white", padding=True, bold=True
         ).print(f"{self.agent.agent_name}: Response from tool '{self.name}'")

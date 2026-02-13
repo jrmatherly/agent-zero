@@ -364,22 +364,15 @@ def _deserialize_log(data: dict[str, Any]) -> "Log":
     return log
 
 
-def _safe_json_serialize(obj, **kwargs):
-    def serializer(o):
-        if isinstance(o, dict):
-            return {k: v for k, v in o.items() if is_json_serializable(v)}
-        elif isinstance(o, (list, tuple)):
-            return [item for item in o if is_json_serializable(item)]
-        elif is_json_serializable(o):
-            return o
-        else:
-            return None  # Skip this property
+class _SafeEncoder(json.JSONEncoder):
+    """Single-pass JSON encoder that converts non-serializable objects to str."""
 
-    def is_json_serializable(item):
+    def default(self, o):
         try:
-            json.dumps(item)
-            return True
-        except (TypeError, OverflowError):
-            return False
+            return str(o)
+        except Exception:
+            return None
 
-    return json.dumps(obj, default=serializer, **kwargs)
+
+def _safe_json_serialize(obj, **kwargs):
+    return json.dumps(obj, cls=_SafeEncoder, **kwargs)
