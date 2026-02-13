@@ -111,6 +111,10 @@ run = "uv run pytest tests/ -v"
 description = "Run tests with coverage report"
 run = "uv run pytest tests/ -v --cov=python/ --cov-report=term-missing"
 
+[tasks."test:ci"]
+description = "Run tests with coverage enforcement for CI (CD-C4)"
+run = "uv run pytest tests/ -v --cov=python/ --cov-report=term-missing --cov-report=xml --cov-fail-under=20"
+
 # ============================================================================
 # Dependencies
 # ============================================================================

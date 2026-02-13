@@ -33,6 +33,6 @@ class Input(Tool):
         )
 
     async def after_execution(self, response, **kwargs):
-        self.agent.hist_add_tool_result(
+        await self.agent.hist_add_tool_result(
             self.name, response.message, **(response.additional or {})
         )

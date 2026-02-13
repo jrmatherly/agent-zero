@@ -25,8 +25,8 @@ import nest_asyncio
 nest_asyncio.apply()
 
 from typing import Annotated  # noqa: E402
+from zoneinfo import ZoneInfo  # noqa: E402
 
-import pytz  # noqa: E402
 from crontab import CronTab  # noqa: E402
 from pydantic import BaseModel, Field, PrivateAttr  # noqa: E402
 
@@ -91,25 +91,25 @@ class TaskPlan(BaseModel):
         if todo:
             for idx, dt in enumerate(todo):
                 if dt.tzinfo is None:
-                    todo[idx] = pytz.timezone("UTC").localize(dt)
+                    todo[idx] = dt.replace(tzinfo=timezone.utc)
         if in_progress:
             if in_progress.tzinfo is None:
-                in_progress = pytz.timezone("UTC").localize(in_progress)
+                in_progress = in_progress.replace(tzinfo=timezone.utc)
         if done:
             for idx, dt in enumerate(done):
                 if dt.tzinfo is None:
-                    done[idx] = pytz.timezone("UTC").localize(dt)
+                    done[idx] = dt.replace(tzinfo=timezone.utc)
         return cls(todo=todo, in_progress=in_progress, done=done)
 
     def add_todo(self, launch_time: datetime):
         if launch_time.tzinfo is None:
-            launch_time = pytz.timezone("UTC").localize(launch_time)
+            launch_time = launch_time.replace(tzinfo=timezone.utc)
         self.todo.append(launch_time)
         self.todo = sorted(self.todo)
 
     def set_in_progress(self, launch_time: datetime):
         if launch_time.tzinfo is None:
-            launch_time = pytz.timezone("UTC").localize(launch_time)
+            launch_time = launch_time.replace(tzinfo=timezone.utc)
         if launch_time not in self.todo:
             raise ValueError(f"Launch time {launch_time} not in todo list")
         self.todo.remove(launch_time)
@@ -118,7 +118,7 @@ class TaskPlan(BaseModel):
 
     def set_done(self, launch_time: datetime):
         if launch_time.tzinfo is None:
-            launch_time = pytz.timezone("UTC").localize(launch_time)
+            launch_time = launch_time.replace(tzinfo=timezone.utc)
         if launch_time != self.in_progress:
             raise ValueError(
                 f"Launch time {launch_time} is not the same as in progress time {self.in_progress}"
@@ -386,7 +386,7 @@ class ScheduledTask(BaseTask):
             crontab = CronTab(crontab=self.schedule.to_crontab())  # type: ignore
 
             # Get the timezone from the schedule or use UTC as fallback
-            task_timezone = pytz.timezone(
+            task_timezone = ZoneInfo(
                 self.schedule.timezone or Localization.get().get_timezone()
             )
 
@@ -1034,7 +1034,7 @@ class TaskScheduler:
                     id=str(uuid.uuid4()),
                 )
 
-                agent.hist_add_user_message(
+                await agent.hist_add_user_message(
                     UserMessage(
                         message=task_prompt,
                         system_message=[current_task.system_prompt],

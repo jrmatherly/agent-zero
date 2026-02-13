@@ -63,10 +63,28 @@ class Record:
     def to_dict(self) -> dict:
         pass
 
+    # Allowlist of classes permitted for deserialization
+    _ALLOWED_CLASSES: dict[str, type] = {}
+
+    @classmethod
+    def _get_allowed_classes(cls) -> dict[str, type]:
+        """Lazily populate the allowlist to avoid forward reference issues."""
+        if not cls._ALLOWED_CLASSES:
+            cls._ALLOWED_CLASSES = {
+                "Message": Message,
+                "Topic": Topic,
+                "Bulk": Bulk,
+                "History": History,
+            }
+        return cls._ALLOWED_CLASSES
+
     @staticmethod
     def from_dict(data: dict, history: "History"):
         cls = data["_cls"]
-        return globals()[cls].from_dict(data, history=history)
+        allowed = Record._get_allowed_classes()
+        if cls not in allowed:
+            raise ValueError(f"Unknown record class during deserialization: {cls!r}")
+        return allowed[cls].from_dict(data, history=history)
 
     def output_langchain(self):
         return output_langchain(self.output())

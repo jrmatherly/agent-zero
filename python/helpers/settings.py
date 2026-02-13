@@ -4,6 +4,7 @@ import hmac
 import json
 import os
 import subprocess
+import threading
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, cast
 
 if TYPE_CHECKING:
@@ -237,6 +238,7 @@ API_KEY_PLACEHOLDER = "************"
 SETTINGS_FILE = files.get_abs_path("usr/settings.json")
 _settings: Settings | None = None
 _runtime_settings_snapshot: Settings | None = None
+_settings_lock = threading.RLock()
 
 OptionT = TypeVar("OptionT", bound=FieldOption)
 
@@ -408,31 +410,35 @@ def convert_in(settings: Settings) -> Settings:
 
 def get_settings() -> Settings:
     global _settings
-    if not _settings:
-        _settings = _read_settings_file()
-    if not _settings:
-        _settings = get_default_settings()
-    norm = normalize_settings(_settings)
-    _load_sensitive_settings(norm)
-    return norm
+    with _settings_lock:
+        if not _settings:
+            _settings = _read_settings_file()
+        if not _settings:
+            _settings = get_default_settings()
+        norm = normalize_settings(_settings)
+        _load_sensitive_settings(norm)
+        return norm
 
 
 def reload_settings() -> Settings:
     global _settings
-    _settings = None
-    return get_settings()
+    with _settings_lock:
+        _settings = None
+        return get_settings()
 
 
 def set_runtime_settings_snapshot(settings: Settings) -> None:
     global _runtime_settings_snapshot
-    _runtime_settings_snapshot = settings.copy()
+    with _settings_lock:
+        _runtime_settings_snapshot = settings.copy()
 
 
 def set_settings(settings: Settings, apply: bool = True):
     global _settings
-    previous = _settings
-    _settings = normalize_settings(settings)
-    _write_settings_file(_settings)
+    with _settings_lock:
+        previous = _settings
+        _settings = normalize_settings(settings)
+        _write_settings_file(_settings)
     if apply:
         _apply_settings(previous)
     return reload_settings()
@@ -771,7 +777,9 @@ def get_default_settings() -> Settings:
 
 def _apply_settings(previous: Settings | None):
     global _settings
-    if _settings:
+    with _settings_lock:
+        current = _settings
+    if current:
         from agent import AgentContext
         from initialize import initialize_agent
 
@@ -785,23 +793,23 @@ def _apply_settings(previous: Settings | None):
                 agent = agent.get_data(agent.DATA_NAME_SUBORDINATE)
 
         # reload whisper model if necessary
-        if not previous or _settings["stt_model_size"] != previous["stt_model_size"]:
+        if not previous or current["stt_model_size"] != previous["stt_model_size"]:
             _task = defer.DeferredTask().start_task(
-                whisper.preload, _settings["stt_model_size"]
+                whisper.preload, current["stt_model_size"]
             )  # GC guard: prevents DeferredTask.__del__ from cancelling in-flight work
 
         # force memory reload on embedding model change
         if not previous or (
-            _settings["embed_model_name"] != previous["embed_model_name"]
-            or _settings["embed_model_provider"] != previous["embed_model_provider"]
-            or _settings["embed_model_kwargs"] != previous["embed_model_kwargs"]
+            current["embed_model_name"] != previous["embed_model_name"]
+            or current["embed_model_provider"] != previous["embed_model_provider"]
+            or current["embed_model_kwargs"] != previous["embed_model_kwargs"]
         ):
             from python.helpers.memory import reload as memory_reload
 
             memory_reload()
 
         # update mcp settings if necessary
-        if not previous or _settings["mcp_servers"] != previous["mcp_servers"]:
+        if not previous or current["mcp_servers"] != previous["mcp_servers"]:
             from python.helpers.mcp_handler import MCPConfig
 
             async def update_mcp_settings(mcp_servers: str):

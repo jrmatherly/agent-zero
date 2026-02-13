@@ -8,7 +8,7 @@ from python.helpers.print_style import PrintStyle
 
 # initialize the internal Flask server
 app = Flask("app")
-app.config["JSON_SORT_KEYS"] = False  # Disable key sorting in jsonify
+app.json.sort_keys = False  # Disable key sorting in jsonify
 
 
 def run():

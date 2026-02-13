@@ -4,13 +4,7 @@ Validates configure_mcp_auth(), _get_mcp_user(), require_scopes_or_token_path(),
 Bearer token fallback routing, and token-in-path coexistence.
 """
 
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 class TestConfigureMcpAuth:
@@ -247,15 +241,67 @@ class TestMcpRateLimiting:
 
 
 class TestDynamicMcpProxyBearerFallback:
-    def test_bearer_route_added_when_auth_configured(self):
-        """Verify that the __call__ method handles /http without token
-        when auth is configured."""
+    async def test_bearer_fallback_routes_to_http_app_when_auth_configured(self):
+        """When auth is configured and path is /http without token, route to http_app."""
+        from unittest.mock import AsyncMock
+
+        from python.helpers import mcp_server as mcp_mod
         from python.helpers.mcp_server import DynamicMcpProxy
 
-        # This is a structural test — verify the code path exists
-        # by checking the DynamicMcpProxy.__call__ source
-        import inspect
+        proxy = DynamicMcpProxy.__new__(DynamicMcpProxy)
+        proxy.token = "test-token-abc"
+        proxy._lock = __import__("threading").RLock()
 
-        source = inspect.getsource(DynamicMcpProxy.__call__)
-        assert "Bearer token fallback" in source
-        assert "mcp_server.auth is not None" in source
+        # Create mock ASGI apps
+        proxy.sse_app = AsyncMock()
+        proxy.http_app = AsyncMock()
+
+        # Simulate auth being configured
+        original_auth = mcp_mod.mcp_server.auth
+        mcp_mod.mcp_server.auth = MagicMock()
+        try:
+            # Request to /http WITHOUT a token in path — should trigger bearer fallback
+            scope = {"type": "http", "path": "/http"}
+            receive = AsyncMock()
+            send = AsyncMock()
+
+            await proxy(scope, receive, send)
+
+            # http_app should have been called with rewritten path including the token
+            proxy.http_app.assert_awaited_once()
+            call_args = proxy.http_app.call_args
+            called_scope = call_args[0][0]
+            assert called_scope["path"] == f"/t-{proxy.token}/http"
+        finally:
+            mcp_mod.mcp_server.auth = original_auth
+
+    async def test_no_bearer_fallback_when_auth_not_configured(self):
+        """When auth is NOT configured, /http without token should raise 403."""
+        from unittest.mock import AsyncMock
+
+        from starlette.exceptions import HTTPException as StarletteHTTPException
+
+        from python.helpers import mcp_server as mcp_mod
+        from python.helpers.mcp_server import DynamicMcpProxy
+
+        proxy = DynamicMcpProxy.__new__(DynamicMcpProxy)
+        proxy.token = "test-token-xyz"
+        proxy._lock = __import__("threading").RLock()
+        proxy.sse_app = AsyncMock()
+        proxy.http_app = AsyncMock()
+
+        # Ensure auth is NOT configured
+        original_auth = mcp_mod.mcp_server.auth
+        mcp_mod.mcp_server.auth = None
+        try:
+            scope = {"type": "http", "path": "/http"}
+            receive = AsyncMock()
+            send = AsyncMock()
+
+            import pytest
+
+            with pytest.raises(StarletteHTTPException) as exc_info:
+                await proxy(scope, receive, send)
+            assert exc_info.value.status_code == 403
+        finally:
+            mcp_mod.mcp_server.auth = original_auth

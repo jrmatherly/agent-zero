@@ -1,4 +1,6 @@
 import base64
+import hashlib
+import hmac
 import json
 import os
 from typing import Any
@@ -63,7 +65,18 @@ class McpOauthStart(ApiHandler):
                 "service_id": service_id,
                 "scopes": service.default_scopes or "",
             }
-            state = base64.b64encode(json.dumps(state_data).encode()).decode()
+            payload = base64.b64encode(json.dumps(state_data).encode()).decode()
+            from flask import current_app
+
+            secret_key = (
+                current_app.secret_key.encode()
+                if isinstance(current_app.secret_key, str)
+                else current_app.secret_key
+            )
+            signature = hmac.new(
+                secret_key, payload.encode(), hashlib.sha256
+            ).hexdigest()
+            state = f"{payload}.{signature}"
 
             # Build authorization URL components
             # The actual OAuth discovery and PKCE is handled by the MCP SDK's

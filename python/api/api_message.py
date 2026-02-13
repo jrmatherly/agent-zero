@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import threading
 from datetime import datetime, timedelta
@@ -10,6 +11,10 @@ from python.helpers.api import ApiHandler, Request, Response
 from python.helpers.print_style import PrintStyle
 from python.helpers.projects import activate_project
 from python.helpers.security import safe_filename
+
+# Reuse the upload allowlist for attachment validation
+import python.api.upload as _upload_module
+from pathlib import Path
 
 
 class ApiMessage(ApiHandler):
@@ -70,6 +75,14 @@ class ApiMessage(ApiHandler):
                     if not filename:
                         raise ValueError("Invalid filename")
 
+                    # Validate file extension against allowlist
+                    ext = Path(filename).suffix.lower()
+                    if ext not in _upload_module.UploadFile.ALLOWED_EXTENSIONS:
+                        PrintStyle.error(
+                            f"Rejected attachment with disallowed extension: {filename}"
+                        )
+                        continue
+
                     # Decode base64 content
                     file_content = base64.b64decode(attachment["base64"])
 
@@ -127,22 +140,10 @@ class ApiMessage(ApiHandler):
                         f"Failed to activate project '{project_name}' for context '{context_id}': {error_msg}"
                     )
                     return Response(
-                        f'{{"error": "Failed to activate project \\"{project_name}\\""}}',
+                        json.dumps(
+                            {"error": f'Failed to activate project "{project_name}"'}
+                        ),
                         status=500,
-                        mimetype="application/json",
-                    )
-
-            # Activate project if provided
-            if project_name:
-                try:
-                    projects.activate_project(context_id, project_name)
-                except Exception as e:
-                    PrintStyle.error(
-                        f"Failed to activate project '{project_name}': {str(e)}"
-                    )
-                    return Response(
-                        f'{{"error": "Failed to activate project \\"{project_name}\\""}}',
-                        status=400,
                         mimetype="application/json",
                     )
 
@@ -189,13 +190,8 @@ class ApiMessage(ApiHandler):
 
         except Exception as e:
             PrintStyle.error(f"External API error: {e}")
-            from python.helpers import runtime
-
-            error_detail = (
-                str(e) if runtime.is_development() else "Internal server error"
-            )
             return Response(
-                f'{{"error": "{error_detail}"}}',
+                json.dumps({"error": "Internal server error"}),
                 status=500,
                 mimetype="application/json",
             )

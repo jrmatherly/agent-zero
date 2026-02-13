@@ -75,5 +75,5 @@ jobs:
           experimental: true
       - name: Install dependencies
         run: mise run install
-      - name: Run tests
-        run: mise run test
+      - name: Run tests with coverage enforcement
+        run: mise run test:ci

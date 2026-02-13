@@ -8,53 +8,13 @@ All tests use in-memory SQLite for full isolation.
 """
 
 import json
-import sys
 import uuid
-from pathlib import Path
 
 import pytest
-from sqlalchemy import create_engine, inspect
+from sqlalchemy import inspect
 from sqlalchemy.orm import Session, sessionmaker
 
-# Ensure project root is on sys.path for imports
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from python.helpers.auth_db import Base
-
-
-# ---------------------------------------------------------------------------
-# Shared fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _reset_vault_master_key(monkeypatch):
-    """Set a test VAULT_MASTER_KEY and reset the cached key between tests."""
-    from python.helpers import vault_crypto
-
-    monkeypatch.setenv("VAULT_MASTER_KEY", "a" * 64)
-    vault_crypto._master_key = None
-    yield
-    vault_crypto._master_key = None
-
-
-@pytest.fixture
-def db_session():
-    """Provide an in-memory SQLite session with all auth tables created."""
-    import python.helpers.user_store  # noqa: F401 — ensure models register on Base
-
-    engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(engine)
-    _Session = sessionmaker(bind=engine)
-    session = _Session()
-
-    yield session
-
-    session.close()
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+pytestmark = pytest.mark.usefixtures("_reset_vault_master_key")
 
 
 @pytest.fixture
@@ -158,8 +118,8 @@ class TestMcpServiceRegistryCrud:
 
     def test_create_service_with_client_secret(self, db_session: Session, test_org):
         """create_service() with client_secret must encrypt it into client_secret_encrypted."""
-        from python.helpers.user_store import create_service
         from python.helpers import vault_crypto
+        from python.helpers.user_store import create_service
 
         service = create_service(
             db_session,
@@ -284,12 +244,12 @@ class TestMcpServiceRegistryCrud:
 
     def test_update_service_with_client_secret(self, db_session: Session, test_org):
         """update_service() with client_secret must encrypt the new value."""
+        from python.helpers import vault_crypto
         from python.helpers.user_store import (
             create_service,
             get_service,
             update_service,
         )
-        from python.helpers import vault_crypto
 
         service = create_service(
             db_session,

@@ -7,56 +7,15 @@ auth_bootstrap (idempotent seeding of default org/team/admin).
 All tests use in-memory SQLite for full isolation.
 """
 
-import sys
 import uuid
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 from cryptography.exceptions import InvalidTag
-from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-# Ensure project root is on sys.path for imports
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from python.helpers.auth_db import Base
-
-
-# ---------------------------------------------------------------------------
-# Shared fixtures
-# ---------------------------------------------------------------------------
-
-
-@pytest.fixture(autouse=True)
-def _reset_vault_master_key(monkeypatch):
-    """Set a test VAULT_MASTER_KEY and reset the cached key between tests."""
-    from python.helpers import vault_crypto
-
-    monkeypatch.setenv("VAULT_MASTER_KEY", "a" * 64)
-    vault_crypto._master_key = None
-    yield
-    vault_crypto._master_key = None
-
-
-@pytest.fixture
-def db_session():
-    """Provide an in-memory SQLite session with all auth tables created."""
-    import python.helpers.user_store  # noqa: F401 — ensure models register on Base
-
-    engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(engine)
-    _Session = sessionmaker(bind=engine)
-    session = _Session()
-
-    yield session
-
-    session.close()
-    Base.metadata.drop_all(engine)
-    engine.dispose()
+pytestmark = pytest.mark.usefixtures("_reset_vault_master_key")
 
 
 # ===================================================================

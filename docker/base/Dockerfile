@@ -44,5 +44,8 @@ RUN bash /ins/configure_ssh.sh
 # after install
 RUN bash /ins/after_install.sh
 
+# Create non-root application user for runtime (CD-C2)
+RUN useradd -m -s /bin/bash -u 1000 appuser
+
 # Keep container running infinitely
 CMD ["tail", "-f", "/dev/null"]

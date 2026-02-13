@@ -1,18 +1,17 @@
+import asyncio
 import json
 import logging
 import os
+import threading
 from datetime import datetime
 from enum import Enum
-from typing import Any, List, Sequence
+from typing import Any
 
 import faiss
 import numpy as np
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import InMemoryByteStore, LocalFileStore
 from langchain_community.docstore.in_memory import InMemoryDocstore
-
-# from langchain_chroma import Chroma
-from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores.utils import (
     DistanceStrategy,
 )
@@ -29,6 +28,7 @@ from python.helpers import (  # noqa: F401 — faiss_monkey_patch is a side-effe
     guids,
     knowledge_import,
 )
+from python.helpers.faiss_wrapper import MyFaiss
 from python.helpers.log import LogItem
 from python.helpers.print_style import PrintStyle
 
@@ -38,23 +38,6 @@ from . import files
 logging.getLogger("langchain_core.vectorstores.base").setLevel(logging.ERROR)
 
 
-class MyFaiss(FAISS):
-    # override aget_by_ids
-    def get_by_ids(self, ids: Sequence[str], /) -> List[Document]:
-        # return all self.docstore._dict[id] in ids
-        return [
-            self.docstore._dict[id]
-            for id in (ids if isinstance(ids, list) else [ids])
-            if id in self.docstore._dict
-        ]  # type: ignore
-
-    async def aget_by_ids(self, ids: Sequence[str], /) -> List[Document]:
-        return self.get_by_ids(ids)
-
-    def get_all_docs(self):
-        return self.docstore._dict  # type: ignore
-
-
 class Memory:
     class Area(Enum):
         MAIN = "main"
@@ -62,34 +45,37 @@ class Memory:
         SOLUTIONS = "solutions"
 
     index: dict[str, "MyFaiss"] = {}
+    _index_lock = threading.Lock()
 
     @staticmethod
     async def get(agent: Agent):
         memory_subdir = get_agent_memory_subdir(agent)
-        if Memory.index.get(memory_subdir) is None:
-            log_item = agent.context.log.log(
-                type="util",
-                heading=f"Initializing VectorDB in '/{memory_subdir}'",
-            )
-            db, created = Memory.initialize(
-                log_item,
-                agent.config.embeddings_model,
-                memory_subdir,
-                False,
-            )
-            Memory.index[memory_subdir] = db
-            wrap = Memory(db, memory_subdir=memory_subdir)
-            knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
-                memory_subdir, agent.config.knowledge_subdirs or []
-            )
-            if knowledge_subdirs:
-                await wrap.preload_knowledge(log_item, knowledge_subdirs, memory_subdir)
-            return wrap
-        else:
+        with Memory._index_lock:
+            existing = Memory.index.get(memory_subdir)
+        if existing is not None:
             return Memory(
-                db=Memory.index[memory_subdir],
+                db=existing,
                 memory_subdir=memory_subdir,
             )
+        log_item = agent.context.log.log(
+            type="util",
+            heading=f"Initializing VectorDB in '/{memory_subdir}'",
+        )
+        db, created = Memory.initialize(
+            log_item,
+            agent.config.embeddings_model,
+            memory_subdir,
+            False,
+        )
+        with Memory._index_lock:
+            Memory.index[memory_subdir] = db
+        wrap = Memory(db, memory_subdir=memory_subdir)
+        knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
+            memory_subdir, agent.config.knowledge_subdirs or []
+        )
+        if knowledge_subdirs:
+            await wrap.preload_knowledge(log_item, knowledge_subdirs, memory_subdir)
+        return wrap
 
     @staticmethod
     async def get_by_subdir(
@@ -97,34 +83,36 @@ class Memory:
         log_item: LogItem | None = None,
         preload_knowledge: bool = True,
     ):
-        if not Memory.index.get(memory_subdir):
-            import initialize
+        with Memory._index_lock:
+            existing = Memory.index.get(memory_subdir)
+        if existing:
+            return Memory(db=existing, memory_subdir=memory_subdir)
+        import initialize
 
-            agent_config = initialize.initialize_agent()
-            model_config = agent_config.embeddings_model
-            db, _created = Memory.initialize(
-                log_item=log_item,
-                model_config=model_config,
-                memory_subdir=memory_subdir,
-                in_memory=False,
+        agent_config = initialize.initialize_agent()
+        model_config = agent_config.embeddings_model
+        db, _created = Memory.initialize(
+            log_item=log_item,
+            model_config=model_config,
+            memory_subdir=memory_subdir,
+            in_memory=False,
+        )
+        wrap = Memory(db, memory_subdir=memory_subdir)
+        if preload_knowledge:
+            knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
+                memory_subdir, agent_config.knowledge_subdirs or []
             )
-            wrap = Memory(db, memory_subdir=memory_subdir)
-            if preload_knowledge:
-                knowledge_subdirs = get_knowledge_subdirs_by_memory_subdir(
-                    memory_subdir, agent_config.knowledge_subdirs or []
-                )
-                if knowledge_subdirs:
-                    await wrap.preload_knowledge(
-                        log_item, knowledge_subdirs, memory_subdir
-                    )
+            if knowledge_subdirs:
+                await wrap.preload_knowledge(log_item, knowledge_subdirs, memory_subdir)
+        with Memory._index_lock:
             Memory.index[memory_subdir] = db
-        return Memory(db=Memory.index[memory_subdir], memory_subdir=memory_subdir)
+        return Memory(db=db, memory_subdir=memory_subdir)
 
     @staticmethod
     async def reload(agent: Agent):
         memory_subdir = get_agent_memory_subdir(agent)
-        if Memory.index.get(memory_subdir):
-            del Memory.index[memory_subdir]
+        with Memory._index_lock:
+            Memory.index.pop(memory_subdir, None)
         return await Memory.get(agent)
 
     @staticmethod
@@ -385,7 +373,7 @@ class Memory:
                 break
 
         if tot:
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return removed
 
     async def delete_documents_by_ids(self, ids: list[str]):
@@ -398,7 +386,7 @@ class Memory:
             await self.db.adelete(ids=rem_ids)
 
         if rem_docs:
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return rem_docs
 
     async def insert_text(self, text, metadata: dict = {}):
@@ -418,18 +406,18 @@ class Memory:
                     doc.metadata["area"] = Memory.Area.MAIN.value
 
             await self.db.aadd_documents(documents=docs, ids=ids)
-            self._save_db()  # persist
+            await self._save_db()  # persist
         return ids
 
     async def update_documents(self, docs: list[Document]):
         ids = [doc.metadata["id"] for doc in docs]
         await self.db.adelete(ids=ids)  # delete originals
         ins = await self.db.aadd_documents(documents=docs, ids=ids)  # add updated
-        self._save_db()  # persist
+        await self._save_db()  # persist
         return ins
 
-    def _save_db(self):
-        Memory._save_db_file(self.db, self.memory_subdir)
+    async def _save_db(self):
+        await asyncio.to_thread(Memory._save_db_file, self.db, self.memory_subdir)
 
     def _generate_doc_id(self):
         while True:
@@ -494,7 +482,8 @@ def get_custom_knowledge_subdir_abs(agent: Agent) -> str:
 
 def reload():
     # clear the memory index, this will force all DBs to reload
-    Memory.index = {}
+    with Memory._index_lock:
+        Memory.index.clear()
 
 
 def abs_db_dir(memory_subdir: str) -> str:

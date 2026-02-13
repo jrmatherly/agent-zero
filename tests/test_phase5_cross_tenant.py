@@ -6,36 +6,10 @@ Validates tenant isolation for MCP requests, including:
 - RBAC enforcement prevents cross-org access
 """
 
-import sys
 import uuid
-from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from python.helpers.auth_db import Base
-
-
-@pytest.fixture
-def db_session():
-    """Provide an in-memory SQLite session with all auth tables."""
-    import python.helpers.user_store  # noqa: F401
-    import python.helpers.audit  # noqa: F401
-
-    engine = create_engine("sqlite:///:memory:", echo=False)
-    Base.metadata.create_all(engine)
-    _Session = sessionmaker(bind=engine)
-    session = _Session()
-    yield session
-    session.close()
-    Base.metadata.drop_all(engine)
-    engine.dispose()
 
 
 @pytest.fixture

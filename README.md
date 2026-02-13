@@ -42,9 +42,9 @@ A detailed setup guide for Windows, macOS, and Linux can be found in the Apollos
 # Pull and run with Docker
 
 docker pull ghcr.io/jrmatherly/apollos-ai
-docker run -p 50001:80 ghcr.io/jrmatherly/apollos-ai
+docker run -p 50080:80 ghcr.io/jrmatherly/apollos-ai
 
-# Visit http://localhost:50001 to start
+# Visit http://localhost:50080 to start
 ```
 
 # 💡 Key Features

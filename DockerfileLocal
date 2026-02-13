@@ -39,5 +39,11 @@ EXPOSE 22 80 9000-9009
 
 RUN chmod +x /exe/initialize.sh /exe/run_A0.sh /exe/run_searxng.sh /exe/run_tunnel_api.sh
 
+# Grant appuser access to application and runtime directories (CD-C2)
+RUN chown -R appuser:appuser /git/apollos-ai /opt/venv-a0 && \
+    mkdir -p /a0 && chown appuser:appuser /a0
+
 # initialize runtime and switch to supervisord
+# NOTE: supervisord runs as root to manage sshd/cron; app processes run as
+# appuser via user= directives in supervisord.conf
 CMD ["sh", "-c", "exec /exe/initialize.sh $BRANCH"]

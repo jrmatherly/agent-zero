@@ -1,13 +1,8 @@
-# ruff: noqa: E402 — nest_asyncio.apply() must run before asyncio-using imports
 import asyncio
 import random
 import string
 import threading
-
-import nest_asyncio
-
-nest_asyncio.apply()
-
+import time
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -51,7 +46,11 @@ class AgentContextType(Enum):
 class AgentContext:
     _contexts: dict[str, "AgentContext"] = {}
     _contexts_lock = threading.RLock()
+    _context_timestamps: dict[str, float] = {}
+    MAX_CONTEXTS = 200
+    CONTEXT_TTL = 3600  # 1 hour
     _counter: int = 0
+    _counter_lock = threading.Lock()
     _notification_manager = None
 
     def __init__(
@@ -76,10 +75,13 @@ class AgentContext:
         self.id = id or AgentContext.generate_id()
         existing = None
         with AgentContext._contexts_lock:
+            AgentContext._evict_stale_locked()
             existing = AgentContext._contexts.get(self.id, None)
             if existing:
                 AgentContext._contexts.pop(self.id, None)
+                AgentContext._context_timestamps.pop(self.id, None)
             AgentContext._contexts[self.id] = self
+            AgentContext._context_timestamps[self.id] = time.monotonic()
         if existing and existing.task:
             existing.task.kill()
         if set_current:
@@ -97,8 +99,9 @@ class AgentContext:
         self.task: DeferredTask | None = None
         self.created_at = created_at or datetime.now(timezone.utc)
         self.type = type
-        AgentContext._counter += 1
-        self.no = AgentContext._counter
+        with AgentContext._counter_lock:
+            AgentContext._counter += 1
+            self.no = AgentContext._counter
         self.last_message = last_message or datetime.now(timezone.utc)
         self.user_id = user_id
         self.tenant_ctx: TenantContext | None = tenant_ctx
@@ -109,7 +112,10 @@ class AgentContext:
     @staticmethod
     def get(id: str):
         with AgentContext._contexts_lock:
-            return AgentContext._contexts.get(id, None)
+            ctx = AgentContext._contexts.get(id, None)
+            if ctx is not None:
+                AgentContext._context_timestamps[id] = time.monotonic()
+            return ctx
 
     @staticmethod
     def use(id: str):
@@ -183,9 +189,43 @@ class AgentContext:
     def remove(id: str):
         with AgentContext._contexts_lock:
             context = AgentContext._contexts.pop(id, None)
+            AgentContext._context_timestamps.pop(id, None)
         if context and context.task:
             context.task.kill()
         return context
+
+    @classmethod
+    def _evict_stale_locked(cls):
+        """Remove contexts older than CONTEXT_TTL. Must be called while holding _contexts_lock."""
+        now = time.monotonic()
+        stale_ids = [
+            cid
+            for cid, ts in cls._context_timestamps.items()
+            if (now - ts) > cls.CONTEXT_TTL
+            and not (cls._contexts.get(cid) and cls._contexts[cid].is_running())
+        ]
+        for cid in stale_ids:
+            ctx = cls._contexts.pop(cid, None)
+            cls._context_timestamps.pop(cid, None)
+            if ctx and ctx.task:
+                ctx.task.kill()
+
+        # If still over MAX_CONTEXTS, evict oldest non-running contexts
+        if len(cls._contexts) > cls.MAX_CONTEXTS:
+            sorted_ids = sorted(
+                cls._context_timestamps.keys(),
+                key=lambda k: cls._context_timestamps[k],
+            )
+            for cid in sorted_ids:
+                if len(cls._contexts) <= cls.MAX_CONTEXTS:
+                    break
+                ctx = cls._contexts.get(cid)
+                if ctx and ctx.is_running():
+                    continue  # skip running contexts
+                cls._contexts.pop(cid, None)
+                cls._context_timestamps.pop(cid, None)
+                if ctx and ctx.task:
+                    ctx.task.kill()
 
     def get_data(self, key: str, recursive: bool = True):
         # recursive is not used now, prepared for context hierarchy
@@ -304,14 +344,13 @@ class AgentContext:
     # this wrapper ensures that superior agents are called back if the chat was loaded from file and original callstack is gone
     async def _process_chain(self, agent: "Agent", msg: "UserMessage|str", user=True):
         try:
-            (
-                agent.hist_add_user_message(msg)  # type: ignore
-                if user
-                else agent.hist_add_tool_result(
+            if user:
+                await agent.hist_add_user_message(msg)  # type: ignore
+            else:
+                await agent.hist_add_tool_result(
                     tool_name="call_subordinate",
                     tool_result=msg,  # type: ignore
                 )
-            )
             response = await agent.monologue()  # type: ignore
             superior = agent.data.get(Agent.DATA_NAME_SUPERIOR, None)
             if superior:
@@ -406,7 +445,9 @@ class Agent:
         self.intervention: UserMessage | None = None
         self.data: dict[str, Any] = {}  # free data object all the tools can use
 
-        asyncio.run(self.call_extensions("agent_init"))
+        from python.helpers.defer import EventLoopThread
+
+        EventLoopThread().run_coroutine(self.call_extensions("agent_init")).result()
 
     async def monologue(self):
         error_retries = 0  # counter for critical error retries
@@ -500,10 +541,10 @@ class Agent:
                             self.loop_data.last_response == agent_response
                         ):  # if assistant_response is the same as last message in history, let him know
                             # Append the assistant's response to the history
-                            self.hist_add_ai_response(agent_response)
+                            await self.hist_add_ai_response(agent_response)
                             # Append warning message to the history
                             warning_msg = self.read_prompt("fw.msg_repeat.md")
-                            self.hist_add_warning(message=warning_msg)
+                            await self.hist_add_warning(message=warning_msg)
                             PrintStyle(font_color="orange", padding=True).print(
                                 warning_msg
                             )
@@ -511,7 +552,7 @@ class Agent:
 
                         else:  # otherwise proceed with tool
                             # Append the assistant's response to the history
-                            self.hist_add_ai_response(agent_response)
+                            await self.hist_add_ai_response(agent_response)
                             # process tools requested in agent message
                             tools_result = await self.process_tools(agent_response)
                             if tools_result:  # final response of message loop available
@@ -525,7 +566,7 @@ class Agent:
                         # Forward repairable errors to the LLM, maybe it can fix them
                         msg = {"message": errors.format_error(e)}
                         await self.call_extensions("error_format", msg=msg)
-                        self.hist_add_warning(msg["message"])
+                        await self.hist_add_warning(msg["message"])
                         PrintStyle(font_color="red", padding=True).print(msg["message"])
                         self.context.log.log(type="warning", content=msg["message"])
                     except Exception as e:
@@ -632,7 +673,7 @@ class Agent:
         agent_facing_error = self.read_prompt(
             "fw.msg_critical_error.md", error_message=error_message
         )
-        self.hist_add_warning(message=agent_facing_error)
+        await self.hist_add_warning(message=agent_facing_error)
         PrintStyle(font_color="orange", padding=True).print(agent_facing_error)
         return error_retries + 1
 
@@ -697,20 +738,20 @@ class Agent:
     def set_data(self, field: str, value):
         self.data[field] = value
 
-    def hist_add_message(
+    async def hist_add_message(
         self, ai: bool, content: history.MessageContent, tokens: int = 0
     ):
         self.last_message = datetime.now(timezone.utc)
         # Allow extensions to process content before adding to history
         content_data = {"content": content}
-        asyncio.run(
-            self.call_extensions("hist_add_before", content_data=content_data, ai=ai)
-        )
+        await self.call_extensions("hist_add_before", content_data=content_data, ai=ai)
         return self.history.add_message(
             ai=ai, content=content_data["content"], tokens=tokens
         )
 
-    def hist_add_user_message(self, message: UserMessage, intervention: bool = False):
+    async def hist_add_user_message(
+        self, message: UserMessage, intervention: bool = False
+    ):
         self.history.new_topic()  # user message starts a new topic in history
 
         # load message template based on intervention
@@ -734,27 +775,27 @@ class Agent:
             content = {k: v for k, v in content.items() if v}
 
         # add to history
-        msg = self.hist_add_message(False, content=content)  # type: ignore
+        msg = await self.hist_add_message(False, content=content)  # type: ignore
         self.last_user_message = msg
         return msg
 
-    def hist_add_ai_response(self, message: str):
+    async def hist_add_ai_response(self, message: str):
         self.loop_data.last_response = message
         content = self.parse_prompt("fw.ai_response.md", message=message)
-        return self.hist_add_message(True, content=content)
+        return await self.hist_add_message(True, content=content)
 
-    def hist_add_warning(self, message: history.MessageContent):
+    async def hist_add_warning(self, message: history.MessageContent):
         content = self.parse_prompt("fw.warning.md", message=message)
-        return self.hist_add_message(False, content=content)
+        return await self.hist_add_message(False, content=content)
 
-    def hist_add_tool_result(self, tool_name: str, tool_result: str, **kwargs):
+    async def hist_add_tool_result(self, tool_name: str, tool_result: str, **kwargs):
         data = {
             "tool_name": tool_name,
             "tool_result": tool_result,
             **kwargs,
         }
-        asyncio.run(self.call_extensions("hist_add_tool_result", data=data))
-        return self.hist_add_message(False, content=data)
+        await self.call_extensions("hist_add_tool_result", data=data)
+        return await self.hist_add_message(False, content=data)
 
     def concat_messages(
         self, messages
@@ -872,12 +913,12 @@ class Agent:
             if last_tool:
                 tool_progress = last_tool.progress.strip()
                 if tool_progress:
-                    self.hist_add_tool_result(last_tool.name, tool_progress)
+                    await self.hist_add_tool_result(last_tool.name, tool_progress)
                     last_tool.set_progress(None)
             if progress.strip():
-                self.hist_add_ai_response(progress)
+                await self.hist_add_ai_response(progress)
             # append the intervention message
-            self.hist_add_user_message(msg, intervention=True)
+            await self.hist_add_user_message(msg, intervention=True)
             raise InterventionException(msg)
 
     async def wait_if_paused(self):
@@ -966,14 +1007,14 @@ class Agent:
                 error_detail = (
                     f"Tool '{raw_tool_name}' not found or could not be initialized."
                 )
-                self.hist_add_warning(error_detail)
+                await self.hist_add_warning(error_detail)
                 PrintStyle(font_color="red", padding=True).print(error_detail)
                 self.context.log.log(
                     type="warning", content=f"{self.agent_name}: {error_detail}"
                 )
         else:
             warning_msg_misformat = self.read_prompt("fw.msg_misformat.md")
-            self.hist_add_warning(warning_msg_misformat)
+            await self.hist_add_warning(warning_msg_misformat)
             PrintStyle(font_color="red", padding=True).print(warning_msg_misformat)
             self.context.log.log(
                 type="warning",

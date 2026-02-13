@@ -116,7 +116,7 @@ class CodeExecution(Tool):
         return f"icon://terminal {session_text}{text}"
 
     async def after_execution(self, response, **kwargs):
-        self.agent.hist_add_tool_result(
+        await self.agent.hist_add_tool_result(
             self.name, response.message, **(response.additional or {})
         )
 
@@ -257,7 +257,7 @@ class CodeExecution(Tool):
                 )
 
             except Exception as e:
-                if i == 1:
+                if i == 0:
                     # try again on lost connection
                     PrintStyle.error(str(e))
                     await self.prepare_state(reset=True, session=session)

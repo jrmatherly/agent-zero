@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 
-# Set up SSH
+# Set up SSH (CD-C3: disable root login, allow only appuser)
 mkdir -p /var/run/sshd && \
-    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config
+    sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin no/' /etc/ssh/sshd_config && \
+    echo "AllowUsers appuser" >> /etc/ssh/sshd_config

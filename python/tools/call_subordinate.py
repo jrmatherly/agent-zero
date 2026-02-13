@@ -29,7 +29,9 @@ class Delegation(Tool):
 
         # add user message to subordinate agent
         subordinate: Agent = self.agent.get_data(Agent.DATA_NAME_SUBORDINATE)  # type: ignore
-        subordinate.hist_add_user_message(UserMessage(message=message, attachments=[]))
+        await subordinate.hist_add_user_message(
+            UserMessage(message=message, attachments=[])
+        )
 
         # run subordinate monologue
         result = await subordinate.monologue()

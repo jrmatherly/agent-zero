@@ -1,3 +1,4 @@
+import os
 import random
 import string
 
@@ -9,12 +10,19 @@ PrintStyle.phase("⚙️", "Preparing environment")
 try:
     runtime.initialize()
 
-    # generate random root password if not set (for SSH)
-    root_pass = dotenv.get_dotenv_value(dotenv.KEY_ROOT_PASSWORD)
-    if not root_pass:
-        root_pass = "".join(random.choices(string.ascii_letters + string.digits, k=32))
+    # Root password setup requires root privileges (chpasswd).
+    # When running as non-root (e.g. appuser via supervisord), skip —
+    # initialize.sh handles this before supervisord starts.
+    if os.getuid() == 0:
+        root_pass = dotenv.get_dotenv_value(dotenv.KEY_ROOT_PASSWORD)
+        if not root_pass:
+            root_pass = "".join(
+                random.choices(string.ascii_letters + string.digits, k=32)
+            )
+        settings.set_root_password(root_pass)
         PrintStyle.step("Root password", "configured")
-    settings.set_root_password(root_pass)
+    else:
+        PrintStyle.step("Root password", "skipped (not root)")
 
 except Exception as e:
     PrintStyle.error(f"Error in preload: {e}")

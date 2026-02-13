@@ -3,8 +3,7 @@ from __future__ import annotations
 import types
 from dataclasses import dataclass
 from typing import Any, Mapping, TypedDict, Union, get_args, get_origin, get_type_hints
-
-import pytz  # type: ignore[import-untyped]
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from agent import AgentContext, AgentContextType
 from python.helpers.dotenv import get_dotenv_value
@@ -147,8 +146,8 @@ def parse_state_request_payload(payload: Mapping[str, Any]) -> StateRequestV1:
 
     tz = timezone.strip()
     try:
-        pytz.timezone(tz)
-    except pytz.exceptions.UnknownTimeZoneError as exc:
+        ZoneInfo(tz)
+    except (KeyError, ZoneInfoNotFoundError) as exc:
         raise StateRequestValidationError(
             reason="timezone_invalid",
             message="timezone must be a valid IANA timezone name",

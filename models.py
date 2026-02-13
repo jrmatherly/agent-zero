@@ -16,11 +16,11 @@ from typing import (
 
 import litellm
 import openai
-from langchain.embeddings.base import Embeddings
 from langchain_core.callbacks.manager import (
     AsyncCallbackManagerForLLMRun,
     CallbackManagerForLLMRun,
 )
+from langchain_core.embeddings import Embeddings
 from langchain_core.language_models.chat_models import SimpleChatModel
 from langchain_core.messages import (
     AIMessageChunk,
@@ -31,6 +31,7 @@ from langchain_core.messages import (
 from langchain_core.outputs.chat_generation import ChatGenerationChunk
 from litellm import acompletion, completion, embedding
 from pydantic import ConfigDict
+
 from python.helpers import (
     branding,
     browser_use_monkeypatch,

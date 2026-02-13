@@ -40,6 +40,10 @@ class FileBrowser:
 
     def save_file_b64(self, current_path: str, filename: str, base64_content: str):
         try:
+            # Validate file extension against allowlist
+            if not self._is_allowed_file(filename, None):
+                raise ValueError(f"File type not allowed: {filename}")
+
             # Resolve the target directory path
             target_file = (self.base_dir / current_path / filename).resolve()
             if not str(target_file).startswith(str(self.base_dir)):
@@ -184,17 +188,87 @@ class FileBrowser:
             PrintStyle.error(f"Error saving file {file_path}: {e}")
             raise
 
+    UPLOAD_ALLOWED_EXTENSIONS = {
+        # Images
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".svg",
+        ".webp",
+        ".ico",
+        ".tiff",
+        # Documents
+        ".txt",
+        ".pdf",
+        ".csv",
+        ".md",
+        ".rst",
+        ".rtf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".odt",
+        ".ods",
+        ".odp",
+        # Code / config
+        ".html",
+        ".css",
+        ".js",
+        ".ts",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".conf",
+        ".env",
+        ".sh",
+        ".bash",
+        ".py",
+        ".rb",
+        ".go",
+        ".rs",
+        ".java",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        # Archives
+        ".zip",
+        ".tar",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".7z",
+        ".rar",
+        # Data
+        ".sql",
+        ".db",
+        ".sqlite",
+        ".parquet",
+        ".ndjson",
+        ".jsonl",
+        # Other
+        ".log",
+        ".wav",
+        ".mp3",
+        ".mp4",
+        ".webm",
+        ".ogg",
+    }
+
     def _is_allowed_file(self, filename: str, file) -> bool:
-        # allow any file to be uploaded in file browser
-
-        # if not filename:
-        #     return False
-        # ext = self._get_file_extension(filename)
-        # all_allowed = set().union(*self.ALLOWED_EXTENSIONS.values())
-        # if ext not in all_allowed:
-        #     return False
-
-        return True  # Allow the file if it passes the checks
+        if not filename:
+            return False
+        ext = Path(filename).suffix.lower()
+        return ext in self.UPLOAD_ALLOWED_EXTENSIONS
 
     def _get_file_extension(self, filename: str) -> str:
         return filename.rsplit(".", 1)[1].lower() if "." in filename else ""

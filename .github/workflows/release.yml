@@ -14,8 +14,41 @@ permissions:
   packages: write
 
 jobs:
+  ci-check:
+    name: Verify CI Passed
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Check CI status on tagged commit (CD-H1)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Checking CI status for commit $GITHUB_SHA..."
+          # Wait briefly for CI to register (tag push may race with CI)
+          sleep 10
+          CONCLUSION=$(gh run list \
+            --commit "$GITHUB_SHA" \
+            --workflow ci.yml \
+            --status completed \
+            --json conclusion \
+            --jq '.[0].conclusion' \
+            2>/dev/null || echo "")
+          if [ "$CONCLUSION" = "success" ]; then
+            echo "CI passed on this commit."
+          elif [ -z "$CONCLUSION" ]; then
+            echo "::error::No completed CI run found for commit $GITHUB_SHA."
+            echo "Ensure CI has run and passed on this commit before tagging a release."
+            exit 1
+          else
+            echo "::error::CI conclusion was '$CONCLUSION' (expected 'success')."
+            exit 1
+          fi
+
   release:
     name: Create Release
+    needs: ci-check
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

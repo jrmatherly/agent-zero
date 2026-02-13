@@ -32,7 +32,86 @@ class UploadFile(ApiHandler):
 
         return {"filenames": saved_filenames}  # Return saved filenames
 
+    ALLOWED_EXTENSIONS = {
+        # Images
+        ".png",
+        ".jpg",
+        ".jpeg",
+        ".gif",
+        ".bmp",
+        ".svg",
+        ".webp",
+        ".ico",
+        ".tiff",
+        # Documents
+        ".txt",
+        ".pdf",
+        ".csv",
+        ".md",
+        ".rst",
+        ".rtf",
+        ".doc",
+        ".docx",
+        ".xls",
+        ".xlsx",
+        ".ppt",
+        ".pptx",
+        ".odt",
+        ".ods",
+        ".odp",
+        # Code / config
+        ".html",
+        ".css",
+        ".js",
+        ".ts",
+        ".json",
+        ".xml",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".conf",
+        ".env",
+        ".sh",
+        ".bash",
+        ".py",
+        ".rb",
+        ".go",
+        ".rs",
+        ".java",
+        ".c",
+        ".cpp",
+        ".h",
+        ".hpp",
+        # Archives
+        ".zip",
+        ".tar",
+        ".gz",
+        ".bz2",
+        ".xz",
+        ".7z",
+        ".rar",
+        # Data
+        ".sql",
+        ".db",
+        ".sqlite",
+        ".parquet",
+        ".ndjson",
+        ".jsonl",
+        # Other
+        ".log",
+        ".wav",
+        ".mp3",
+        ".mp4",
+        ".webm",
+        ".ogg",
+    }
+
     def allowed_file(self, filename):
-        return True
-        # ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "txt", "pdf", "csv", "html", "json", "md"}
-        # return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+        if not filename:
+            return False
+        from pathlib import Path
+
+        ext = Path(filename).suffix.lower()
+        return ext in self.ALLOWED_EXTENSIONS

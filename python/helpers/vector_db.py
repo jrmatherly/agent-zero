@@ -1,10 +1,9 @@
-from typing import Any, List, Sequence
+from typing import Any
 
 import faiss
 from langchain.embeddings import CacheBackedEmbeddings
 from langchain.storage import InMemoryByteStore
 from langchain_community.docstore.in_memory import InMemoryDocstore
-from langchain_community.vectorstores import FAISS
 from langchain_community.vectorstores.utils import (
     DistanceStrategy,
 )
@@ -14,24 +13,11 @@ from simpleeval import simple_eval
 from agent import Agent
 
 # faiss needs to be patched for python 3.12 on arm #TODO remove once not needed
-from python.helpers import faiss_monkey_patch, guids  # noqa: F401 — faiss_monkey_patch is a side-effect import
-
-
-class MyFaiss(FAISS):
-    # override aget_by_ids
-    def get_by_ids(self, ids: Sequence[str], /) -> List[Document]:
-        # return all self.docstore._dict[id] in ids
-        return [
-            self.docstore._dict[id]
-            for id in (ids if isinstance(ids, list) else [ids])
-            if id in self.docstore._dict
-        ]  # type: ignore
-
-    async def aget_by_ids(self, ids: Sequence[str], /) -> List[Document]:
-        return self.get_by_ids(ids)
-
-    def get_all_docs(self) -> dict[str, Document]:
-        return self.docstore._dict  # type: ignore
+from python.helpers import (  # noqa: F401 — faiss_monkey_patch is a side-effect import
+    faiss_monkey_patch,
+    guids,
+)
+from python.helpers.faiss_wrapper import MyFaiss
 
 
 class VectorDB:

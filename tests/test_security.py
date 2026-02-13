@@ -6,21 +6,15 @@ sandboxing gates, security headers, and backup name sanitization.
 """
 
 import asyncio
-import inspect
+import hashlib
+import hmac
 import json
 import os
 import stat
-import sys
 import threading
-from pathlib import Path
 from unittest.mock import patch
 
 from flask import Flask
-
-# Ensure project root is on sys.path for imports
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 from python.helpers import files, runtime
 
@@ -202,21 +196,77 @@ class TestErrorResponseSanitization:
 # 4. File Permissions
 # ---------------------------------------------------------------------------
 class TestFilePermissions:
-    """Verify security-sensitive file permission constants in source."""
+    """Verify security-sensitive file permissions are applied at runtime."""
 
-    def test_no_world_writable_permissions_in_delete_dir(self):
-        """delete_dir must use 0o700 (owner-only), not 0o777 (world-writable)."""
-        source = inspect.getsource(files.delete_dir)
-        assert "0o777" not in source
-        assert "0o700" in source
+    def test_delete_dir_removes_directory(self, tmp_path, monkeypatch):
+        """delete_dir must successfully remove a directory and its contents."""
+        target = tmp_path / "test_dir"
+        target.mkdir()
+        (target / "child.txt").write_text("data")
+        (target / "subdir").mkdir()
+        (target / "subdir" / "nested.txt").write_text("nested")
 
-    def test_dotenv_chmod_is_owner_only(self):
-        """save_dotenv_value must restrict .env to owner-only (S_IRUSR | S_IWUSR)."""
+        monkeypatch.setattr(files, "get_abs_path", lambda rel: str(target))
+        files.delete_dir("test_dir")
+        assert not target.exists(), "delete_dir must remove the directory"
+
+    def test_delete_dir_uses_owner_only_chmod_on_retry(self, tmp_path, monkeypatch):
+        """delete_dir retry path must use 0o700 (owner-only), not 0o777."""
+        import shutil
+
+        target = tmp_path / "stubborn_dir"
+        target.mkdir()
+        child_file = target / "child.txt"
+        child_file.write_text("data")
+
+        monkeypatch.setattr(files, "get_abs_path", lambda rel: str(target))
+
+        # Make rmtree fail on first call so the retry path with chmod is triggered
+        original_rmtree = shutil.rmtree
+        rmtree_calls = []
+
+        def tracking_rmtree(path, ignore_errors=False):
+            rmtree_calls.append(("rmtree", path, ignore_errors))
+            if len(rmtree_calls) == 1:
+                # First call: pretend it failed by not deleting
+                pass
+            else:
+                # Subsequent calls: actually delete
+                original_rmtree(path, ignore_errors=ignore_errors)
+
+        chmod_calls = []
+        original_chmod = os.chmod
+
+        def tracking_chmod(path, mode):
+            chmod_calls.append(("chmod", path, mode))
+            original_chmod(path, mode)
+
+        monkeypatch.setattr(shutil, "rmtree", tracking_rmtree)
+        monkeypatch.setattr(os, "chmod", tracking_chmod)
+
+        files.delete_dir("stubborn_dir")
+
+        # Verify chmod was called with 0o700 (owner-only), not 0o777
+        for _, _, mode in chmod_calls:
+            assert mode == 0o700, f"chmod used {oct(mode)}, expected 0o700"
+        assert len(chmod_calls) > 0, "chmod was not called during retry"
+
+    def test_dotenv_chmod_is_owner_only(self, tmp_path, monkeypatch):
+        """save_dotenv_value must restrict .env to owner-only (0o600) permissions."""
         from python.helpers import dotenv
 
-        source = inspect.getsource(dotenv.save_dotenv_value)
-        assert "S_IRUSR" in source
-        assert "S_IWUSR" in source
+        env_file = tmp_path / ".env"
+        env_file.write_text("")
+        # Make the file world-readable initially to prove chmod changes it
+        env_file.chmod(0o644)
+
+        monkeypatch.setattr(dotenv, "get_dotenv_file_path", lambda: str(env_file))
+        monkeypatch.setattr(dotenv, "load_dotenv", lambda: None)
+
+        dotenv.save_dotenv_value("TEST_KEY", "test_value")
+
+        file_mode = os.stat(str(env_file)).st_mode & 0o777
+        assert file_mode == 0o600, f"Expected 0o600, got {oct(file_mode)}"
 
     def test_dotenv_chmod_numeric_equivalent(self):
         """Sanity check: S_IRUSR | S_IWUSR equals 0o600."""
@@ -270,39 +320,117 @@ class TestSSHHostKeyPolicy:
 # 6. HMAC Token Derivation
 # ---------------------------------------------------------------------------
 class TestHMACTokenDerivation:
-    """Verify login and settings modules use HMAC, not bare SHA-256."""
+    """Verify login and settings modules produce HMAC-based tokens, not bare SHA-256."""
 
-    def test_login_uses_hmac_not_bare_sha256(self):
-        """login.get_credentials_hash must use hmac.new, not hashlib.sha256()."""
+    def test_login_produces_hmac_sha256_output(self, monkeypatch):
+        """login.get_credentials_hash must return an HMAC-SHA256 hex digest."""
         from python.helpers import login
 
-        source = inspect.getsource(login.get_credentials_hash)
-        assert "hmac.new" in source
-        # Bare hashlib.sha256( call should not be present
-        assert "hashlib.sha256(" not in source
+        fake_persistent_id = "test-persistent-id-12345"
+        test_user = "admin"
+        test_password = "secret"
 
-    def test_settings_uses_hmac_not_bare_sha256(self):
-        """settings.create_auth_token must use hmac.new, not hashlib.sha256()."""
-        from python.helpers import settings
+        monkeypatch.setattr(
+            "python.helpers.dotenv.get_dotenv_value",
+            lambda key, default=None: {
+                "AUTH_LOGIN": test_user,
+                "AUTH_PASSWORD": test_password,
+            }.get(key, default),
+        )
+        monkeypatch.setattr(
+            "python.helpers.runtime.get_persistent_id",
+            lambda: fake_persistent_id,
+        )
 
-        source = inspect.getsource(settings.create_auth_token)
-        assert "hmac.new" in source
-        # Bare hashlib.sha256( call should not be present
-        assert "hashlib.sha256(" not in source
+        result = login.get_credentials_hash()
 
-    def test_login_hmac_uses_sha256_digestmod(self):
-        """The HMAC call in login.py must specify sha256 as the digest."""
+        # Compute expected HMAC-SHA256
+        expected = hmac.new(
+            fake_persistent_id.encode(),
+            f"{test_user}:{test_password}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        assert result == expected
+
+        # Verify it does NOT match a bare SHA-256
+        bare_sha256 = hashlib.sha256(
+            f"{test_user}:{test_password}".encode()
+        ).hexdigest()
+        assert result != bare_sha256
+
+    def test_login_returns_none_without_credentials(self, monkeypatch):
+        """login.get_credentials_hash returns None when AUTH_LOGIN is not set."""
         from python.helpers import login
 
-        source = inspect.getsource(login.get_credentials_hash)
-        assert "sha256" in source
+        monkeypatch.setattr(
+            "python.helpers.dotenv.get_dotenv_value",
+            lambda key, default=None: default,
+        )
+        assert login.get_credentials_hash() is None
 
-    def test_settings_hmac_uses_sha256_digestmod(self):
-        """The HMAC call in settings.py must specify sha256 as the digest."""
+    def test_settings_produces_hmac_sha256_output(self, monkeypatch):
+        """settings.create_auth_token must return an HMAC-SHA256-derived token."""
         from python.helpers import settings
 
-        source = inspect.getsource(settings.create_auth_token)
-        assert "sha256" in source
+        fake_persistent_id = "test-persistent-id-67890"
+        test_user = "admin"
+        test_password = "secret"
+
+        monkeypatch.setattr(
+            "python.helpers.runtime.get_persistent_id",
+            lambda: fake_persistent_id,
+        )
+        monkeypatch.setattr(
+            "python.helpers.dotenv.get_dotenv_value",
+            lambda key, default=None: {
+                "AUTH_LOGIN": test_user,
+                "AUTH_PASSWORD": test_password,
+            }.get(key, default),
+        )
+
+        result = settings.create_auth_token()
+
+        # Compute expected HMAC-SHA256 base64-encoded token
+        import base64
+
+        expected_bytes = hmac.new(
+            fake_persistent_id.encode(),
+            f"{test_user}:{test_password}".encode(),
+            hashlib.sha256,
+        ).digest()
+        expected = (
+            base64.urlsafe_b64encode(expected_bytes).decode().replace("=", "")[:16]
+        )
+        assert result == expected
+
+    def test_settings_token_differs_from_bare_sha256(self, monkeypatch):
+        """settings.create_auth_token must NOT match a bare SHA-256 derivation."""
+        from python.helpers import settings
+
+        import base64
+
+        fake_persistent_id = "test-persistent-id-abcdef"
+        test_user = "admin"
+        test_password = "pass123"
+
+        monkeypatch.setattr(
+            "python.helpers.runtime.get_persistent_id",
+            lambda: fake_persistent_id,
+        )
+        monkeypatch.setattr(
+            "python.helpers.dotenv.get_dotenv_value",
+            lambda key, default=None: {
+                "AUTH_LOGIN": test_user,
+                "AUTH_PASSWORD": test_password,
+            }.get(key, default),
+        )
+
+        result = settings.create_auth_token()
+
+        # Bare SHA-256 (what we DON'T want)
+        bare_bytes = hashlib.sha256(f"{test_user}:{test_password}".encode()).digest()
+        bare_token = base64.urlsafe_b64encode(bare_bytes).decode().replace("=", "")[:16]
+        assert result != bare_token
 
 
 # ---------------------------------------------------------------------------
@@ -347,57 +475,80 @@ class TestCodeExecutionSandboxing:
 # 8. Security Headers
 # ---------------------------------------------------------------------------
 class TestSecurityHeaders:
-    """Verify security response headers are configured in run_ui.py."""
+    """Verify security response headers are applied at runtime via Flask test client."""
 
-    def test_run_ui_has_security_headers_handler(self):
-        """run_ui must set X-Content-Type-Options, X-Frame-Options, CSP, and Referrer-Policy."""
+    def test_run_ui_security_headers_are_set(self):
+        """Responses must include X-Content-Type-Options, X-Frame-Options, CSP, and Referrer-Policy."""
         import run_ui
 
-        source = inspect.getsource(run_ui)
-        assert "X-Content-Type-Options" in source
-        assert "X-Frame-Options" in source
-        assert "Content-Security-Policy" in source
-        assert "Referrer-Policy" in source
+        with run_ui.webapp.test_client() as client:
+            response = client.get("/manifest.json")
+            headers = response.headers
+            assert headers.get("X-Content-Type-Options") is not None
+            assert headers.get("X-Frame-Options") is not None
+            assert headers.get("Content-Security-Policy") is not None
+            assert headers.get("Referrer-Policy") is not None
 
     def test_run_ui_has_cors_configuration(self):
-        """run_ui must configure CORS via flask_cors."""
+        """run_ui.webapp must have a flask_cors after_request handler registered."""
         import run_ui
 
-        source = inspect.getsource(run_ui)
-        assert "flask_cors" in source or "CORS" in source
+        # flask_cors registers a cors_after_request handler on the app
+        after_request_fns = run_ui.webapp.after_request_funcs.get(None, [])
+        has_cors = any(
+            getattr(fn, "__module__", "").startswith("flask_cors")
+            for fn in after_request_fns
+        )
+        assert has_cors, "flask_cors after_request handler not registered on Flask app"
 
     def test_run_ui_has_rate_limiter(self):
-        """run_ui must configure a rate limiter via flask_limiter."""
+        """run_ui.limiter must be a flask_limiter.Limiter instance."""
         import run_ui
+        from flask_limiter import Limiter
 
-        source = inspect.getsource(run_ui)
-        assert "flask_limiter" in source or "Limiter" in source
+        assert isinstance(run_ui.limiter, Limiter)
 
     def test_security_header_values_are_strict(self):
         """Verify specific header values are set to strict options."""
         import run_ui
 
-        source = inspect.getsource(run_ui)
-        assert "nosniff" in source  # X-Content-Type-Options value
-        assert "DENY" in source  # X-Frame-Options value
-        assert "strict-origin-when-cross-origin" in source  # Referrer-Policy value
-        assert "frame-ancestors 'none'" in source  # CSP directive
+        with run_ui.webapp.test_client() as client:
+            response = client.get("/manifest.json")
+            headers = response.headers
+            assert headers.get("X-Content-Type-Options") == "nosniff"
+            assert headers.get("X-Frame-Options") == "DENY"
+            assert headers.get("Referrer-Policy") == "strict-origin-when-cross-origin"
+            csp = headers.get("Content-Security-Policy", "")
+            assert "frame-ancestors 'none'" in csp
 
     def test_session_cookie_samesite(self):
         """Session cookie must use SameSite=Lax (required for OIDC redirects)."""
         import run_ui
 
-        source = inspect.getsource(run_ui)
-        assert "SESSION_COOKIE_SAMESITE" in source
-        assert '"Lax"' in source or "'Lax'" in source
+        assert run_ui.webapp.config["SESSION_COOKIE_SAMESITE"] == "Lax"
 
     def test_csrf_protection_exists(self):
-        """run_ui must define CSRF token protection."""
+        """run_ui must define a csrf_protect decorator that checks X-CSRF-Token."""
         import run_ui
 
-        source = inspect.getsource(run_ui)
-        assert "csrf_protect" in source
-        assert "X-CSRF-Token" in source
+        # Verify the csrf_protect function exists and is callable
+        assert callable(run_ui.csrf_protect)
+
+        # Verify it actually checks X-CSRF-Token by exercising it:
+        # Create a test app and endpoint to verify CSRF enforcement
+        test_app = Flask(__name__)
+        test_app.secret_key = "test"
+
+        @test_app.route("/csrf_test", methods=["POST"])
+        @run_ui.csrf_protect
+        async def csrf_endpoint():
+            return "ok"
+
+        with test_app.test_client() as client:
+            # Request without CSRF token should be rejected
+            resp = client.post("/csrf_test")
+            assert resp.status_code == 403
+            assert b"CSRF" in resp.data
 
 
 # ---------------------------------------------------------------------------
@@ -406,18 +557,57 @@ class TestSecurityHeaders:
 class TestBackupNameSanitization:
     """Verify backup_name is sanitized in create_backup to prevent path traversal."""
 
-    def test_backup_name_sanitization_in_source(self):
-        """create_backup must use re.sub to sanitize the backup_name input."""
+    async def test_backup_name_sanitized_in_zip_path(self, monkeypatch):
+        """create_backup must sanitize dangerous chars from backup_name in output path."""
         from python.helpers.backup import BackupService
 
-        source = inspect.getsource(BackupService.create_backup)
-        assert "re.sub" in source
+        svc = BackupService()
+
+        # Mock test_patterns to return a single fake file so create_backup proceeds
+        async def fake_test_patterns(metadata, max_files=50000):
+            fake_file = os.path.join(svc.agent_zero_root, "usr", "test.txt")
+            return [
+                {
+                    "path": fake_file,
+                    "real_path": fake_file,
+                    "size": 4,
+                    "modified": "2025-01-01T00:00:00",
+                    "type": "file",
+                }
+            ]
+
+        monkeypatch.setattr(svc, "test_patterns", fake_test_patterns)
+
+        # Ensure the fake file exists for zipfile.write()
+        fake_file = os.path.join(svc.agent_zero_root, "usr", "test.txt")
+        os.makedirs(os.path.dirname(fake_file), exist_ok=True)
+        if not os.path.exists(fake_file):
+            with open(fake_file, "w") as f:
+                f.write("test")
+
+        dangerous_name = "../../etc/evil-backup"
+        zip_path = await svc.create_backup(
+            include_patterns=["usr/**"],
+            exclude_patterns=[],
+            backup_name=dangerous_name,
+        )
+        try:
+            # The zip filename must not contain path traversal characters
+            zip_basename = os.path.basename(zip_path)
+            assert "/" not in zip_basename
+            assert ".." not in zip_basename
+            assert "evil-backup" in zip_basename  # the safe part survives
+            assert zip_basename.endswith(".zip")
+        finally:
+            # Cleanup
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+                os.rmdir(os.path.dirname(zip_path))
 
     def test_backup_name_sanitization_rejects_slashes(self):
-        """The regex must strip path separator characters from backup names."""
+        """The sanitization must strip path separator characters from backup names."""
         import re
 
-        # This is the exact regex from BackupService.create_backup
         dangerous_name = "../../etc/evil-backup"
         sanitized = re.sub(r"[^\w\-]", "_", dangerous_name)
         assert "/" not in sanitized
@@ -468,15 +658,8 @@ class TestCrossCuttingSecurity:
         result = files.safe_file_name("normal-file_v2.txt")
         assert result == "normal-file_v2.txt"
 
-    def test_write_file_comment_about_sensitivity(self):
-        """write_file must have a lgtm suppression comment noting caller responsibility."""
-        source = inspect.getsource(files.write_file)
-        assert "lgtm" in source or "Caller is responsible" in source
+    # test_write_file_comment_about_sensitivity removed:
+    # testing source code comments is not behavioral testing.
 
-    def test_dotenv_write_has_lgtm_suppression(self):
-        """save_dotenv_value must document the lgtm suppression for .env writes."""
-        from python.helpers import dotenv
-
-        source = inspect.getsource(dotenv.save_dotenv_value)
-        assert "lgtm" in source
-        assert ".env" in source or "credential store" in source
+    # test_dotenv_write_has_lgtm_suppression removed:
+    # testing source code comments is not behavioral testing.

@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
-
-import pytz  # type: ignore
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from python.helpers.dotenv import get_dotenv_value, save_dotenv_value
 from python.helpers.print_style import PrintStyle
@@ -55,7 +54,7 @@ class Localization:
         return self.timezone
 
     def _compute_offset_minutes(self, timezone_name: str) -> int:
-        tzinfo = pytz.timezone(timezone_name)
+        tzinfo = ZoneInfo(timezone_name)
         now_in_tz = datetime.now(tzinfo)
         offset = now_in_tz.utcoffset()
         return int(offset.total_seconds() // 60) if offset else 0
@@ -75,7 +74,7 @@ class Localization:
         """Set the timezone name, but internally store and compare by UTC offset minutes."""
         try:
             # Validate timezone and compute its current offset
-            _ = pytz.timezone(timezone)
+            _ = ZoneInfo(timezone)
             new_offset = self._compute_offset_minutes(timezone)
 
             # If offset changes, check rate limit and update
@@ -101,7 +100,7 @@ class Localization:
             else:
                 # Offset unchanged: update stored timezone without logging or persisting to avoid churn
                 self.timezone = timezone
-        except pytz.exceptions.UnknownTimeZoneError:
+        except (KeyError, ZoneInfoNotFoundError):
             PrintStyle.error(f"Unknown timezone: {timezone}, defaulting to UTC")
             self.timezone = "UTC"
             self._offset_minutes = 0

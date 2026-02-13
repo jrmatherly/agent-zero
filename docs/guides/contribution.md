@@ -22,7 +22,7 @@ Contributions to improve Apollos AI are very welcome!  This guide outlines how t
 
 1. **Push Your Branch:** Push your branch to your forked repository on GitHub.
 2. **Create a Pull Request:** Create a pull request from your branch to the appropriate branch in the main Apollos AI repository.
-   - Target the `development` branch.
+   - Target the `main` branch.
 3. **Provide Details:** In your pull request description, clearly explain the purpose and scope of your changes. Include relevant context, test results, and any other information that might be helpful for reviewers.
 4. **Address Feedback:**  Be responsive to feedback from the community. We love changes, but we also love to discuss them!
 

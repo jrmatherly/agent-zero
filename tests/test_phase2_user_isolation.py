@@ -9,16 +9,9 @@ isolation (user-level secrets cascade), and multiuser migration.
 
 import json
 import os
-import sys
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-# Ensure project root is on sys.path for imports
-PROJECT_ROOT = Path(__file__).resolve().parents[1]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # ---------------------------------------------------------------------------
@@ -224,8 +217,21 @@ class TestPersistChatSerialization:
         with AgentContext._contexts_lock:
             AgentContext._contexts.clear()
 
+    @staticmethod
+    def _stub_agent_init(self, number=0, config=None, context=None):
+        """Minimal Agent.__init__ that sets required attributes without side effects."""
+        self.config = config
+        self.context = context
+        self.number = number
+        self.agent_name = f"A{number}"
+        self.history = MagicMock()
+        self.history.serialize.return_value = []
+        self.last_user_message = None
+        self.intervention = None
+        self.data = {}
+
     def test_serialize_includes_user_id(self):
-        from agent import AgentConfig, AgentContext
+        from agent import Agent, AgentConfig, AgentContext
 
         from python.helpers.persist_chat import _serialize_context
         from python.helpers.tenant import TenantContext
@@ -238,12 +244,13 @@ class TestPersistChatSerialization:
             mcp_servers="{}",
         )
         tenant = TenantContext(user_id="user-42")
-        ctx = AgentContext(config=config, user_id="user-42", tenant_ctx=tenant)
+        with patch.object(Agent, "__init__", self._stub_agent_init):
+            ctx = AgentContext(config=config, user_id="user-42", tenant_ctx=tenant)
         data = _serialize_context(ctx)
         assert data["user_id"] == "user-42"
 
     def test_deserialize_restores_user_id(self):
-        from agent import AgentConfig, AgentContext
+        from agent import Agent, AgentConfig, AgentContext
 
         from python.helpers.persist_chat import (
             _deserialize_context,
@@ -259,9 +266,13 @@ class TestPersistChatSerialization:
             mcp_servers="{}",
         )
         tenant = TenantContext(user_id="user-42")
-        original = AgentContext(config=config, user_id="user-42", tenant_ctx=tenant)
-        data = _serialize_context(original)
-        restored = _deserialize_context(data)
+        with patch.object(Agent, "__init__", self._stub_agent_init):
+            original = AgentContext(config=config, user_id="user-42", tenant_ctx=tenant)
+            data = _serialize_context(original)
+            with patch(
+                "python.helpers.persist_chat.initialize_agent", return_value=config
+            ):
+                restored = _deserialize_context(data)
         assert restored.user_id == "user-42"
         assert restored.tenant_ctx is not None
         assert restored.tenant_ctx.user_id == "user-42"
