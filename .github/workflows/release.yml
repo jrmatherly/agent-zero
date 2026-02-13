@@ -66,3 +66,5 @@ jobs:
           tags: |
             ghcr.io/jrmatherly/apollos-ai:${{ github.ref_name }}
             ghcr.io/jrmatherly/apollos-ai:latest
+          cache-from: type=gha,scope=docker-release
+          cache-to: type=gha,mode=max,scope=docker-release

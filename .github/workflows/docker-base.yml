@@ -35,3 +35,5 @@ jobs:
           push: true
           platforms: linux/amd64
           tags: ghcr.io/jrmatherly/apollos-ai-base:latest
+          cache-from: type=gha,scope=docker-base
+          cache-to: type=gha,mode=max,scope=docker-base

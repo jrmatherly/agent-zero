@@ -4,12 +4,12 @@ on:
   push:
     branches: [main]
     paths:
-      - 'python/**'
-      - 'tests/**'
-      - 'prompts/**'
+      - "python/**"
+      - "tests/**"
+      - "prompts/**"
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1'
+    - cron: "0 6 * * 1"
 
 concurrency:
   group: drift-${{ github.ref }}
@@ -28,6 +28,14 @@ jobs:
       - uses: jdx/mise-action@v3
         with:
           experimental: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Cache driftdetect
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: driftdetect-${{ runner.os }}-npm
       - name: Install driftdetect
         run: npm install -g driftdetect
       - name: Run drift scan
