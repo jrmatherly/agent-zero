@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.3.3] - 2026-02-13
+
+
+### Bug Fixes
+
+- Correct PostgreSQL 18+ volume mount and Alembic script location for Docker environments.
+- Code review remediation — Phases 1-7 (#7)
+
+
+### Features
+
+- Implement caching for Node.js, uv, and Docker builds across CI workflows to improve performance.
+- Add performance and security analysis documentation and refine Docker build processes and runtime scripts.
+- Introduce structured and phased startup logging with new PrintStyle methods and improved shell script output.
+- Enhance Docker container logging and startup output with structured messages and pretty-print PROJECT_INDEX.json.
+
+
 ## [v0.3.2] - 2026-02-13
 
 
