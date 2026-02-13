@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.3.5] - 2026-02-13
+
+
+### Bug Fixes
+
+- Inline path confinement logic from `_confine_to_project_root` into `FileBrowser.__init__` for improved CodeQL analysis.
+- Adjust `FileBrowser` path sanitization to satisfy CodeQL's SSA requirements, update CodeQL path injection fix documentation.
+
+
+### Features
+
+- Add docs-reviewer agent, docs-audit and new-extension skills, and integrate block-secrets and run-related-tests hooks.
+- Improve file browser security with TenantContext path validation and fix workspace root path resolution.
+- Add new import ordering and package boundaries patterns, and update metadata for existing approved drift patterns.
+- Implement `$PROJECTS/` virtual path routing, including backend resolution and response path re-prefixing for frontend display.
+- Enhance file browser path confinement by validating base directory against project root and centralizing path containment checks.
+- *(ui)* Executive Theme redesign with glass effects and theme toggle (#10)
+
+
+### Miscellaneous Tasks
+
+- Ignore `deploy/docker/Caddyfile.local` in both ignore files and local audit/analysis paths in `.dockerignore`.
+- Add .worktrees/ to .gitignore
+
+
+### Refactor
+
+- Apply Biome formatting and introduce minor code improvements across the codebase.
+
+
+### Security
+
+- File browser workspace isolation (CWE-22 remediation) (#9)
+
+
+### Styling
+
+- Update dashboard logo opacity and filter properties for default and light modes.
+
+
 ## [v0.3.3] - 2026-02-13
 
 
