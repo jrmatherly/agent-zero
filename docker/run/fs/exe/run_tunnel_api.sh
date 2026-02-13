@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Wait until run_tunnel.py exists
-echo "Starting tunnel API..."
+echo "   ├─ tunnel-api    starting"
 
 sleep 1
 while [ ! -f /a0/run_tunnel.py ]; do
-    echo "Waiting for /a0/run_tunnel.py to be available..."
+    echo "   │  tunnel-api    waiting for run_tunnel.py..."
     sleep 1
 done
 

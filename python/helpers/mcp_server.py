@@ -87,7 +87,7 @@ def configure_mcp_auth() -> None:
     )
     mcp_server.auth = auth
     _azure_auth_configured = True
-    _PRINTER.print("[MCP] Azure OAuth auth configured via AzureProvider")
+    PrintStyle.step("MCP OAuth", "AzureProvider configured")
 
 
 # ---------------------------------------------------------------------------

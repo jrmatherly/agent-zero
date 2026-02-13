@@ -47,9 +47,7 @@ def _seed_defaults() -> None:
         team = user_store.create_team(
             db, org_id=org.id, name="Default Team", slug="default"
         )
-        PrintStyle.info(
-            f"Auth bootstrap: created org '{org.name}' and team '{team.name}'"
-        )
+        PrintStyle.step("Org/Team", f"{org.name} → {team.name}")
 
         # Create admin user if ADMIN_EMAIL is set
         admin_email = os.environ.get("ADMIN_EMAIL")
@@ -75,7 +73,7 @@ def _seed_defaults() -> None:
                 role="lead",
             )
             db.add(team_membership)
-            PrintStyle.info(f"Auth bootstrap: created admin user '{admin_email}'")
+            PrintStyle.step("Admin", admin_email)
         elif admin_email:
             PrintStyle.warning(
                 "Auth bootstrap: ADMIN_EMAIL is set but ADMIN_PASSWORD is missing. "
@@ -159,9 +157,7 @@ def _seed_group_mappings() -> None:
             count += 1
 
     if count:
-        PrintStyle.info(
-            f"Auth bootstrap: seeded {count} group mapping(s) from environment."
-        )
+        PrintStyle.step("Groups", f"{count} mapping(s) seeded")
 
 
 def bootstrap() -> None:
@@ -170,11 +166,13 @@ def bootstrap() -> None:
     Safe to call multiple times -- idempotent.  Skips seeding if the
     default organization already exists.
     """
+    PrintStyle.phase("🔐", "Auth system")
+
     # Initialize the database engine
     auth_db.init_db()
 
     # Run migrations
-    PrintStyle.info("Auth bootstrap: running database migrations...")
+    PrintStyle.step("Database", "running migrations...")
     _run_migrations()
 
     # Seed defaults
@@ -205,11 +203,8 @@ def bootstrap() -> None:
         from python.helpers.vector_store import pgvector_store
 
         if pgvector_store.is_available():
-            PrintStyle.info(
-                "Auth bootstrap: pgVector hybrid mode active — "
-                "vectors will be durably stored in PostgreSQL."
-            )
+            PrintStyle.step("pgVector", "hybrid mode enabled")
     except Exception as e:
         PrintStyle.debug(f"pgVector check skipped: {e}")
 
-    PrintStyle.info("Auth bootstrap: complete.")
+    PrintStyle.step("Bootstrap", "complete", last=True)

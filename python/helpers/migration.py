@@ -9,7 +9,7 @@ def migrate_user_data() -> None:
     Migrate user data from /tmp and other locations to /usr.
     """
 
-    PrintStyle().print("Checking for data migration...")
+    PrintStyle.phase("🔄", "Data migration")
 
     # --- Migrate Directories -------------------------------------------------------
     # Move directories from tmp/ or other source locations to usr/
@@ -44,7 +44,7 @@ def migrate_user_data() -> None:
     # Remove obsolete directories after migration
     _cleanup_obsolete()
 
-    PrintStyle().print("Migration check complete.")
+    PrintStyle.step("Legacy check", "complete", last=True)
 
 
 # --- Helper Functions ----------------------------------------------------------

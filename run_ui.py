@@ -765,7 +765,14 @@ def configure_websocket_namespaces(
 
 
 def run():
-    PrintStyle().print("Initializing framework...")
+    from importlib.metadata import version as get_version
+
+    try:
+        _version = get_version("agent-zero")
+    except Exception:
+        _version = ""
+    PrintStyle.banner(branding.BRAND_NAME, _version)
+    PrintStyle.phase("🔧", "Initializing framework")
 
     # migrate data before anything else
     initialize.initialize_migration()
@@ -776,7 +783,7 @@ def run():
     # from werkzeug.middleware.dispatcher import DispatcherMiddleware
     # from a2wsgi import ASGIMiddleware
 
-    PrintStyle().print("Starting server...")
+    PrintStyle.phase("🌐", "Starting server")
 
     # class NoRequestLoggingWSGIRequestHandler(WSGIRequestHandler):
     #     def log_request(self, code="-", size="-"):
@@ -885,7 +892,7 @@ def run():
 
     process.set_server(_UvicornServerWrapper(server))
 
-    PrintStyle().debug(f"Starting server at http://{host}:{port} ...")
+    PrintStyle.step("Uvicorn", f"http://{host}:{port}", last=True)
     threading.Thread(target=wait_for_health, args=(host, port), daemon=True).start()
     try:
         server.run()
@@ -899,7 +906,7 @@ def wait_for_health(host: str, port: int):
         try:
             with urllib.request.urlopen(url, timeout=2) as resp:
                 if resp.status == 200:
-                    PrintStyle().print(f"{branding.BRAND_NAME} is running.")
+                    PrintStyle.ready(branding.BRAND_NAME)
                     return
         except Exception:
             pass

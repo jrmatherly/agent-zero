@@ -30,10 +30,10 @@ def migrate_to_multiuser() -> None:
     """
     orgs_dir = files.get_abs_path("usr/orgs")
     if os.path.isdir(orgs_dir):
-        PrintStyle().print("Multi-user directories already exist, skipping migration.")
+        PrintStyle.step("Multi-user", "already configured", last=True)
         return
 
-    PrintStyle().print("Running multi-user data migration...")
+    PrintStyle.step("Multi-user", "migrating...")
 
     system_ctx = TenantContext.system()
 
@@ -55,7 +55,7 @@ def migrate_to_multiuser() -> None:
     # 6. Move legacy uploads to system user's uploads dir
     _migrate_uploads(system_ctx)
 
-    PrintStyle().print("Multi-user migration complete.")
+    PrintStyle.step("Multi-user", "complete", last=True)
 
 
 def _migrate_global_settings() -> None:

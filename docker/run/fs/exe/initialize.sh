@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Running initialization script..."
+echo "⚙️  Initializing container..."
 
 # branch from parameter
 if [ -z "$1" ]; then

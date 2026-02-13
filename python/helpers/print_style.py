@@ -265,6 +265,41 @@ class PrintStyle:
             *prefixed, sep=sep, end=end, flush=flush
         )
 
+    # -- Structured startup output -----------------------------------------
+
+    @staticmethod
+    def banner(title: str, version: str = "") -> None:
+        """Print a startup banner with brand name and optional version."""
+        ver = f" v{version}" if version else ""
+        line = f"🚀 {title}{ver}"
+        rule = "━" * 40
+        PrintStyle(bold=True).print(f"\n{rule}")
+        PrintStyle(bold=True).print(line)
+        PrintStyle(bold=True).print(rule)
+
+    @staticmethod
+    def phase(emoji: str, label: str) -> None:
+        """Print a phase header (e.g., '⚙️  Preparing environment')."""
+        PrintStyle(bold=True).print(f"\n{emoji}  {label}")
+
+    @staticmethod
+    def step(label: str, detail: str = "", last: bool = False) -> None:
+        """Print an indented step under a phase (tree-style)."""
+        prefix = "└─" if last else "├─"
+        msg = f"   {prefix} {label}"
+        if detail:
+            msg += f"  {detail}"
+        PrintStyle().print(msg)
+
+    @staticmethod
+    def ready(brand_name: str) -> None:
+        """Print the final ready message."""
+        rule = "━" * 40
+        PrintStyle(bold=True, font_color="#008000").print(
+            f"\n✅ {brand_name} is running"
+        )
+        PrintStyle(bold=True).print(rule)
+
 
 # Ensure HTML file is closed properly when the program exits
 import atexit  # noqa: E402 — must follow PrintStyle class definition

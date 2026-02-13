@@ -23,13 +23,9 @@ async def preload():
                 emb_mod = models.get_embedding_model(provider, set["embed_model_name"])
                 emb_txt = await emb_mod.aembed_query("test")
                 if provider == "huggingface":
-                    PrintStyle().print(
-                        f"Embedding model loaded locally ({set['embed_model_name']})"
-                    )
+                    PrintStyle.step("Embedding", f"{set['embed_model_name']} (local) ✓")
                 else:
-                    PrintStyle().print(
-                        f"Embedding model connectivity verified ({set['embed_model_name']})"
-                    )
+                    PrintStyle.step("Embedding", f"{set['embed_model_name']} ✓")
                 return emb_txt
             except Exception as e:
                 PrintStyle().error(f"Error in preload_embedding: {e}")
@@ -50,7 +46,7 @@ async def preload():
         ]
 
         await asyncio.gather(*tasks, return_exceptions=True)
-        PrintStyle().print("Preload completed.")
+        PrintStyle.step("Preload", "complete", last=True)
     except Exception as e:
         PrintStyle().error(f"Error in preload: {e}")
 
