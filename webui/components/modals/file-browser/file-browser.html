@@ -9,13 +9,13 @@
   <div x-data>
     <template x-if="$store.fileBrowser">
       <div class="file-browser-root">
-        
+
         <!-- Loading State -->
         <div x-show="$store.fileBrowser.isLoading" class="loading-state">
           <div class="loading-spinner"></div>
           <p>Loading files...</p>
         </div>
-        
+
         <!-- File Browser Content -->
         <div x-show="!$store.fileBrowser.isLoading" class="file-browser-content">
                 <!-- Path navigator -->
@@ -26,7 +26,7 @@
                   </svg>
                   Up
                 </button>
-                <div id="current-path"><span id="path-text" x-text="$store.fileBrowser.browser.currentPath"></span></div>
+                <div id="current-path"><span id="path-text" x-text="$store.fileBrowser.displayPath()"></span></div>
               </div>
               <div class="new-item-buttons">
                 <button class="btn btn-ok btn-new-item" @click="$store.fileBrowser.openNewFile()">
@@ -54,12 +54,22 @@
                       <div class="file-name" @click="file.is_dir && $store.fileBrowser.navigateToFolder(file.path)">
                         <img :src="'/public/' + (file.type === 'unknown' ? 'file' : ($store.fileBrowser.isArchive(file.name) ? 'archive' : file.type)) + '.svg'" class="file-icon" :alt="file.type" />
                         <span x-text="file.name"></span>
+                        <template x-if="file.is_baseline">
+                          <span class="file-badge file-badge-baseline">
+                            <span class="material-symbols-outlined file-badge-icon">lock</span>
+                            baseline
+                          </span>
+                        </template>
+                        <template x-if="file.is_shared">
+                          <span class="file-badge file-badge-shared">shared</span>
+                        </template>
                       </div>
                       <div class="file-size" x-text="$store.fileBrowser.formatFileSize(file.size)"></div>
                       <div class="file-date" x-text="$store.fileBrowser.formatDate(file.modified)"></div>
                       <div class="file-actions">
                         <!-- Single-item actions (Edit/Rename/...) are grouped under a dropdown -->
                         <div
+                          x-show="!file.readonly"
                           class="dropdown file-actions-dropdown"
                           @click.outside="$store.fileBrowser.closeDropdown()"
                           @keydown.escape.window="$store.fileBrowser.closeDropdown()"
@@ -106,7 +116,7 @@
                         <button class="btn-icon-action" x-show="!file.is_dir" @click.stop="$store.fileBrowser.downloadFile(file)" title="Download file">
                           <span class="material-symbols-outlined">download</span>
                         </button>
-                        <button class="btn-icon-action" @click.stop="$confirmClick($event, () => $store.fileBrowser.deleteFile(file))" title="Delete item">
+                        <button class="btn-icon-action" x-show="!file.readonly" @click.stop="$confirmClick($event, () => $store.fileBrowser.deleteFile(file))" title="Delete item">
                           <span class="material-symbols-outlined">delete</span>
                         </button>
                       </div>
@@ -121,10 +131,10 @@
               </div>
             </div>
         </div>
-        
+
       </div>
     </template>
-    
+
     <!-- Modal Footer (outside template x-if so it exists immediately) -->
     <template x-if="$store.fileBrowser">
       <div class="modal-footer" data-modal-footer>
@@ -251,6 +261,37 @@
     overflow: hidden;
     text-overflow: ellipsis;
     }
+
+    /* Badges for baseline / shared entries */
+    .file-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-left: var(--spacing-xs);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.4;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    }
+    .file-badge-icon {
+    font-size: 0.75rem;
+    }
+    .file-badge-baseline {
+    background: var(--color-secondary);
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    }
+    .file-badge-shared {
+    background: var(--color-secondary);
+    color: var(--color-primary);
+    border: 1px solid var(--color-border);
+    }
+
     .file-size,
     .file-date {
     color: var(--text-secondary);
@@ -288,7 +329,7 @@
     .new-item-buttons button {
     margin-left: 0.5em;
     }
-    
+
     .nav-button {
     padding: 4px 12px;
     border: 1px solid var(--color-border);
