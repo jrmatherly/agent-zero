@@ -43,8 +43,8 @@
 }
 
 .notification-toggle.has-unread {
-	border-color: #2196f3;
-	background: rgba(33, 150, 243, 0.1);
+	border-color: var(--color-highlight);
+	background: rgba(212, 175, 55, 0.1);
 	animation: pulse 2s infinite;
 }
 
@@ -95,8 +95,8 @@
 }
 
 .light-mode .notification-toggle.has-unread {
-	border-color: #2196f3;
-	background: rgba(33, 150, 243, 0.1);
+	border-color: var(--color-highlight);
+	background: rgba(107, 90, 27, 0.1);
 }
 
 .light-mode .notification-toggle.disabled:hover {

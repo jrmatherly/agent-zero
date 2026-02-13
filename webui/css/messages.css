@@ -63,8 +63,10 @@
 	padding: var(--spacing-sm);
 	border: 1px solid var(--color-border);
 	border-radius: var(--border-radius);
+	border-top-right-radius: 2px;
 	max-width: 80%;
 	width: auto;
+	background: rgba(255, 255, 255, 0.05);
 }
 
 .message-user > div {
@@ -133,8 +135,12 @@
 
 .message-agent-response {
 	min-width: 255px;
-	background-color: transparent;
+	background: var(--color-glass-bg, transparent);
+	border: 1px solid var(--color-glass-border, transparent);
+	border-radius: 8px;
+	border-top-left-radius: 2px;
 	opacity: 0.85;
+	padding: var(--spacing-sm);
 }
 
 .message-agent-delegation {
@@ -544,6 +550,15 @@
 
 .light-mode .message-user {
 	color: #4e4e4e;
+}
+
+.light-mode .message-user .message-text {
+	background: rgba(0, 0, 0, 0.03);
+}
+
+.light-mode .message-agent-response {
+	background: var(--color-glass-bg, rgba(255, 255, 255, 0.7));
+	border-color: var(--color-glass-border, rgba(0, 0, 0, 0.08));
 }
 
 /* Markdown in messages */

@@ -11,6 +11,13 @@
         <template x-if="$store.welcomeStore && $store.welcomeStore.isVisible">
             <div x-create="$store.welcomeStore.onCreate()" class="welcome-container">
                 <div class="welcome-content">
+                    <!-- Dashboard Header -->
+                    <div class="dashboard-header">
+                        <img src="/public/splash.svg" alt="" class="dashboard-logo" />
+                        <div class="dashboard-clock" x-text="$store.welcomeStore.currentTime"></div>
+                        <div class="dashboard-date" x-text="$store.welcomeStore.currentDate"></div>
+                    </div>
+
                     <!-- Action Cards -->
                     <div class="welcome-actions">
                         <div class="welcome-action-card" @click="$store.welcomeStore.executeAction('new-chat')">
@@ -69,6 +76,25 @@
                         </button>
                     </div>
 
+                    <!-- System Status -->
+                    <div class="system-status">
+                        <div class="status-item">
+                            <span class="material-symbols-outlined status-icon">wifi</span>
+                            <span class="status-label">Connection</span>
+                            <span class="status-value" :class="$store.welcomeStore.connectionStatusClass" x-text="$store.welcomeStore.connectionStatus"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="material-symbols-outlined status-icon">smart_toy</span>
+                            <span class="status-label">Agent</span>
+                            <span class="status-value" :class="$store.welcomeStore.agentStatusClass" x-text="$store.welcomeStore.agentStatus"></span>
+                        </div>
+                        <div class="status-item">
+                            <span class="material-symbols-outlined status-icon">chat</span>
+                            <span class="status-label">Chats</span>
+                            <span class="status-value" x-text="$store.welcomeStore.activeChatCount"></span>
+                        </div>
+                    </div>
+
                     <!-- Banner Section -->
                     <div class="welcome-banners" x-show="$store.welcomeStore.banners && $store.welcomeStore.banners.length > 0">
                         <template x-for="banner in $store.welcomeStore.sortedBanners" :key="banner.id">
@@ -77,15 +103,15 @@
                                 <div class="welcome-banner-icon">
                                     <span class="material-symbols-outlined" x-text="$store.welcomeStore.getBannerIcon(banner.type)"></span>
                                 </div>
-                                
+
                                 <!-- Banner Content -->
                                 <div class="welcome-banner-content">
                                     <div class="welcome-banner-title" x-text="banner.title"></div>
                                     <div class="welcome-banner-html" x-html="banner.html"></div>
                                 </div>
-                                
+
                                 <!-- Dismiss Button -->
-                                <button class="welcome-banner-dismiss" 
+                                <button class="welcome-banner-dismiss"
                                         x-show="banner.dismissible !== false"
                                         @click.stop="$store.welcomeStore.dismissBanner(banner.id)"
                                         title="Dismiss">
@@ -242,9 +268,49 @@
             to { transform: rotate(360deg); }
         }
 
+        /* Dashboard Header */
+        .dashboard-header {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .dashboard-logo {
+            width: 5rem;
+            height: 5rem;
+            opacity: 0.8;
+            margin-bottom: 0.75rem;
+            filter: invert(0.85);
+        }
+
+        .light-mode .dashboard-logo {
+            filter: invert(0.5);
+        }
+
+        .dashboard-clock {
+            font-family: var(--font-family-serif, Georgia, serif);
+            font-size: 2.5rem;
+            font-weight: 400;
+            color: var(--color-text);
+            letter-spacing: 0.02em;
+            line-height: 1.2;
+        }
+
+        .dashboard-date {
+            font-family: var(--font-family-main, sans-serif);
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: var(--color-highlight);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
         .welcome-action-card {
-            background: var(--color-panel);
-            border: 1px solid var(--color-border);
+            background: var(--color-glass-bg, var(--color-panel));
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--color-glass-border, var(--color-border));
             border-radius: 12px;
             padding: 0.6rem;
             transition: all 0.3s ease;
@@ -257,12 +323,80 @@
             text-align: center;
             justify-content: center;
             aspect-ratio: 1 / 1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Shine-on-hover effect */
+        .welcome-action-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                45deg,
+                transparent 40%,
+                rgba(212, 175, 55, 0.08) 50%,
+                transparent 60%
+            );
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+            pointer-events: none;
+        }
+
+        .welcome-action-card:hover::before {
+            transform: translateX(100%);
         }
 
         .welcome-action-card:hover {
-            border-color: var(--color-primary);
-            background: var(--color-message-bg);
+            border-color: var(--color-highlight);
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.15);
         }
+
+        /* System Status */
+        .system-status {
+            display: flex;
+            gap: 1.5rem;
+            max-width: 640px;
+            width: 100%;
+            justify-content: center;
+            padding: 0.75rem 1rem;
+            margin-top: 0.5rem;
+            background: var(--color-glass-bg, transparent);
+            border: 1px solid var(--color-glass-border, var(--color-border));
+            border-radius: 10px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: var(--color-text-muted, var(--color-secondary));
+        }
+
+        .status-icon {
+            font-size: 1rem;
+            opacity: 0.7;
+        }
+
+        .status-label {
+            opacity: 0.7;
+        }
+
+        .status-value {
+            font-weight: 500;
+            color: var(--color-text);
+        }
+
+        .status-healthy { color: #4CAF50; }
+        .status-degraded { color: #FF9800; }
+        .status-disconnected { color: #F44336; }
+        .status-unknown { color: var(--color-secondary); }
 
         .welcome-action-icon {
             font-size: 2.1rem;
@@ -303,7 +437,7 @@
 
         /* Banner Type Styles */
         .welcome-banner.banner-info {
-            border-left: 4px solid #2196F3;
+            border-left: 4px solid var(--color-highlight);
         }
 
         .welcome-banner.banner-warning {
@@ -423,6 +557,14 @@
             color: #666;
         }
 
+        .light-mode .dashboard-date {
+            color: var(--color-highlight-dark, #6B5A1B);
+        }
+
+        .light-mode .system-status {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
         .light-mode .welcome-banner {
             background: var(--color-panel);
         }
@@ -441,6 +583,11 @@
                 padding: 1rem;
                 padding-top: 3rem;
             }
+
+            .dashboard-header { margin-bottom: 0.5rem; }
+            .dashboard-logo { width: 3.5rem; height: 3.5rem; }
+            .dashboard-clock { font-size: 1.8rem; }
+            .dashboard-date { font-size: 0.8rem; }
 
             .welcome-logo {
                 width: 5rem;
@@ -481,6 +628,13 @@
                 font-size: 0.85rem;
             }
 
+            .system-status {
+                gap: 0.75rem;
+                padding: 0.5rem 0.75rem;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
             .welcome-banners {
                 max-width: 100%;
             }
@@ -499,6 +653,8 @@
         }
 
         @media (max-width: 520px) {
+            .system-status { flex-direction: column; gap: 0.5rem; align-items: flex-start; }
+
             .welcome-actions {
                 grid-template-columns: 1fr;
                 gap: 0.5rem;

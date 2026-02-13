@@ -2,7 +2,7 @@
 	position: relative;
 	width: 100%;
 	background-color: #333;
-	font-family: "Rubik", Arial, Helvetica, sans-serif;
+	font-family: var(--font-family-main);
 	color: #fff;
 	padding: 0.6rem 0.9rem;
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
@@ -62,14 +62,14 @@
 }
 
 #toast.toast--info {
-	background-color: #2196f3;
+	background-color: var(--color-highlight);
 }
 
 .toast__close,
 .toast__copy {
 	background-color: transparent;
 	border: none;
-	font-family: "Rubik", Arial, Helvetica, sans-serif;
+	font-family: var(--font-family-main);
 	color: #fff;
 	cursor: pointer;
 	font-size: 16px;

@@ -20,7 +20,7 @@
   background: transparent;
   border: none;
   color: var(--color-text-muted);
-  font-family: "Rubik", Arial, Helvetica, sans-serif;
+  font-family: var(--font-family-main);
   font-size: var(--font-size-xs);
   cursor: pointer;
   padding: var(--spacing-xs) 0;

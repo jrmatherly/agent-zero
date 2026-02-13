@@ -1,0 +1,141 @@
+/* tokens.css — Executive Theme Design Tokens
+   Separates design decisions from component styling.
+   Source of truth for colors, typography, and effect values. */
+
+/* === DARK MODE (DEFAULT) === */
+:root {
+	/* Backgrounds */
+	--color-background-dark: #0A0B0D;
+	--color-chat-background-dark: #0F1115;
+	--color-panel-dark: #121418;
+	--color-message-bg-dark: #1A1D23;
+	--color-input-dark: #0A0B0D;
+	--color-input-focus-dark: #080910;
+
+	/* Accent */
+	--color-highlight-dark: #D4AF37;
+	--color-highlight-dim: #B8860B;
+	--color-highlight-bright: #FFBF00;
+	--color-primary-dark: #94A3B8;
+
+	/* Text */
+	--color-text-dark: #E2E8F0;
+	--color-text-muted-dark: #94A3B8;
+	--color-message-text-dark: #CBD5E1;
+
+	/* Borders */
+	--color-border-dark: rgba(255, 255, 255, 0.08);
+
+	/* Status (unchanged from base) */
+	--color-accent-dark: #cf6679;
+	--color-error-text-dark: #e72323;
+	--color-warning-text-dark: #e79c23;
+	--color-secondary-dark: #475569;
+	--color-table-row-dark: #141720;
+
+	/* Glass effects */
+	--color-glass-bg: rgba(20, 21, 23, 0.6);
+	--color-glass-border: rgba(212, 175, 55, 0.15);
+	--color-glass-sidebar: rgba(10, 11, 13, 0.8);
+
+	/* Typography */
+	--font-family-main: "Inter", "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-serif: "Playfair Display", Georgia, serif;
+	--font-family-display: "Work Sans", "Inter", sans-serif;
+	--font-family-code: "JetBrains Mono", "Roboto Mono", monospace;
+}
+
+/* === LIGHT MODE === */
+.light-mode {
+	--color-background: #FAFAF8;
+	--color-chat-background: #FAFAF8;
+	--color-panel: #F0F0EE;
+	--color-message-bg: #FFFFFF;
+	--color-input: #E8E8E4;
+	--color-input-focus: #DDDDD8;
+
+	--color-highlight: #6B5A1B; /* WCAG AA compliant dark gold */
+	--color-primary: #4A5568;
+	--color-text: #1A202C;
+	--color-text-muted: #4A5568;
+	--color-message-text: #2D3748;
+	--color-border: rgba(0, 0, 0, 0.12);
+
+	--color-glass-bg: rgba(255, 255, 255, 0.7);
+	--color-glass-border: rgba(107, 90, 27, 0.15);
+}
+
+/* === CLASSIC THEME (original blue/gray) === */
+/* Dark mode classic — applied via data-theme on <body> (dark-mode is default) */
+[data-theme="classic"] {
+	--color-background: #131313;
+	--color-chat-background: #212121;
+	--color-panel: #1a1a1a;
+	--color-message-bg: #2d2d2d;
+	--color-input: #131313;
+	--color-input-focus: #101010;
+	--color-highlight: #2b5ab9;
+	--color-primary: #737a81;
+	--color-text: #ffffff;
+	--color-text-muted: #d4d4d4e4;
+	--color-message-text: #e0e0e0;
+	--color-border: #444444a8;
+	--color-secondary: #656565;
+	--color-table-row: #272727;
+	--color-error-text: #e72323;
+	--color-warning-text: #e79c23;
+
+	/* Disable glass effects in classic theme */
+	--color-glass-bg: transparent;
+	--color-glass-border: transparent;
+	--color-glass-sidebar: transparent;
+	--color-highlight-dim: #1e40af;
+	--color-highlight-bright: #3b82f6;
+
+	/* Classic fonts (no serif, no display) */
+	--font-family-main: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-serif: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-display: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-code: "Roboto Mono", monospace;
+}
+
+/* Light mode classic */
+[data-theme="classic"].light-mode {
+	--color-background: #fafafa;
+	--color-chat-background: #fafafa;
+	--color-panel: #f0f0f0;
+	--color-message-bg: #ffffff;
+	--color-input: #e4e4e4;
+	--color-input-focus: #dadada;
+	--color-highlight: #2563eb;
+	--color-primary: #384653;
+	--color-text: #333333;
+	--color-text-muted: #333333e4;
+	--color-message-text: #333333;
+	--color-border: #bdbdbdcf;
+	--color-secondary: #e8eaf6;
+	--color-table-row: #edededf3;
+	--color-error-text: #920000;
+	--color-warning-text: #936214;
+	--color-glass-bg: transparent;
+	--color-glass-border: transparent;
+}
+
+/* Disable backdrop-filter in classic theme for performance */
+[data-theme="classic"] .glass-sidebar,
+[data-theme="classic"] .welcome-action-card,
+[data-theme="classic"] #input-section,
+[data-theme="classic"] .system-status {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+/* === REDUCED MOTION: disable backdrop-filter (GPU-intensive) === */
+@media (prefers-reduced-motion: reduce) {
+	* {
+		/* biome-ignore lint/complexity/noImportantStyles: required to override inline backdrop-filter for reduced-motion accessibility */
+		backdrop-filter: none !important;
+		/* biome-ignore lint/complexity/noImportantStyles: required to override inline backdrop-filter for reduced-motion accessibility */
+		-webkit-backdrop-filter: none !important;
+	}
+}

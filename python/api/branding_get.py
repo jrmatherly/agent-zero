@@ -23,4 +23,5 @@ class BrandingGet(ApiHandler):
             "slug": branding.BRAND_SLUG,
             "url": branding.BRAND_URL,
             "github_url": branding.BRAND_GITHUB_URL,
+            "accent_color": branding.BRAND_ACCENT_COLOR,
         }

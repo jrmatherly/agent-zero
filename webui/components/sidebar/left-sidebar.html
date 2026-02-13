@@ -10,7 +10,24 @@
 <body>
   <div x-data>
     <template x-if="$store.sidebar">
-      <div id="left-panel" class="panel" x-data :class="{'hidden': !$store.sidebar.isOpen}">
+      <div id="left-panel" class="panel glass-sidebar" x-data
+        :class="{
+          'hidden': !$store.sidebar.isOpen,
+          'sidebar-expanded': $store.sidebar.isExpanded,
+          'sidebar-collapsed': !$store.sidebar.isExpanded
+        }"
+        @mouseenter="$store.sidebar.onMouseEnter()"
+        @mouseleave="$store.sidebar.onMouseLeave()"
+        @focusin="$store.sidebar.onFocusIn()"
+        @focusout="$store.sidebar.onFocusOut($event, $el)">
+        <!-- Pin/Unpin Button -->
+        <button class="sidebar-pin-btn"
+          :class="{ 'pinned': $store.sidebar._isPinned }"
+          @click="$store.sidebar.togglePin()"
+          :title="$store.sidebar._isPinned ? 'Unpin sidebar' : 'Pin sidebar open'"
+          :aria-label="$store.sidebar._isPinned ? 'Unpin sidebar' : 'Pin sidebar open'">
+          <span class="material-symbols-outlined">push_pin</span>
+        </button>
         <!--Sidebar upper elements-->
         <div class="left-panel-top no-scrollbar">
           <!-- Top Section: Header Icons + Quick Actions -->
@@ -36,7 +53,7 @@
   </div>
 
   <style>
-    /* Left Panel styles from index.css */
+    /* Left Panel base styles */
     #left-panel {
       background-color: var(--color-panel);
       border-right: 1px solid var(--color-border);
@@ -44,18 +61,176 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all var(--transition-speed) ease-in-out;
-      width: 250px;
-      min-width: 250px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                  margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       color: var(--color-text);
       box-shadow: 1px 0 5px rgba(0, 0, 0, 0.3);
       user-select: none;
       -webkit-user-select: none;
-      /* Safari compatibility */
       height: 100vh;
-      /* Ensure full height */
       overflow: hidden;
-      /* Prevent overall panel overflow */
+      position: relative;
+    }
+
+    /* Expanded state (pinned or hovered) — default */
+    #left-panel.sidebar-expanded {
+      width: 280px;
+      min-width: 280px;
+    }
+
+    /* Collapsed state (not pinned, not hovered) */
+    #left-panel.sidebar-collapsed {
+      width: 72px;
+      min-width: 72px;
+    }
+
+    /* Pin button */
+    .sidebar-pin-btn {
+      position: absolute;
+      top: 0.6rem;
+      right: 0.6rem;
+      z-index: 1000;
+      background: transparent;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      color: var(--color-text);
+      cursor: pointer;
+      padding: 0.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .sidebar-pin-btn .material-symbols-outlined {
+      font-size: 16px;
+      transition: transform 0.2s ease;
+    }
+
+    /* Show pin button when sidebar is expanded */
+    #left-panel.sidebar-expanded .sidebar-pin-btn {
+      opacity: 0.5;
+    }
+
+    #left-panel.sidebar-expanded .sidebar-pin-btn:hover {
+      opacity: 1;
+      border-color: var(--color-border);
+    }
+
+    /* Rotate pin icon when pinned */
+    .sidebar-pin-btn.pinned .material-symbols-outlined {
+      transform: rotate(45deg);
+      color: var(--color-highlight);
+    }
+
+    /* Hide text labels when collapsed */
+    #left-panel.sidebar-collapsed .sidebar-text-label,
+    #left-panel.sidebar-collapsed .section-header,
+    #left-panel.sidebar-collapsed .chat-name,
+    #left-panel.sidebar-collapsed .task-name,
+    #left-panel.sidebar-collapsed .task-info-line,
+    #left-panel.sidebar-collapsed .ctx-switcher,
+    #left-panel.sidebar-collapsed .empty-list-message,
+    #left-panel.sidebar-collapsed .version-info,
+    #left-panel.sidebar-collapsed .sidebar-admin-btn,
+    #left-panel.sidebar-collapsed .pref-section,
+    #left-panel.sidebar-collapsed .sidebar-pin-btn {
+      display: none;
+    }
+
+    /* Collapsed: hide chat action buttons and task action buttons */
+    #left-panel.sidebar-collapsed .chat-list-action-btn,
+    #left-panel.sidebar-collapsed .task-actions {
+      display: none;
+    }
+
+    /* Collapsed: make chat/task items more compact, icon-only */
+    #left-panel.sidebar-collapsed .chat-list-button {
+      justify-content: center;
+      padding: 6px;
+    }
+
+    #left-panel.sidebar-collapsed .chat-container {
+      justify-content: center;
+    }
+
+    #left-panel.sidebar-collapsed .task-container .chat-list-button {
+      justify-content: center;
+      padding: 4px;
+    }
+
+    /* Collapsed: center the project color balls */
+    #left-panel.sidebar-collapsed .project-color-ball {
+      width: 0.7em;
+      height: 0.7em;
+    }
+
+    /* Collapsed: quick actions go vertical */
+    #left-panel.sidebar-collapsed #quick-actions {
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    #left-panel.sidebar-collapsed .config-button {
+      border-radius: 6px;
+    }
+
+    #left-panel.sidebar-collapsed .config-button:not(:last-child) {
+      margin-right: 0;
+      border-right: none;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    #left-panel.sidebar-collapsed .config-button:first-child {
+      border-top-right-radius: 6px;
+      border-bottom-right-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    #left-panel.sidebar-collapsed .config-button:last-child {
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+      border-bottom-left-radius: 6px;
+    }
+
+    #left-panel.sidebar-collapsed .config-button:not(:first-child):not(:last-child) {
+      border-radius: 0;
+    }
+
+    /* Collapsed: hide dropdown toggle in quick actions */
+    #left-panel.sidebar-collapsed .dropdown-toggle {
+      display: none;
+    }
+
+    /* Tooltips for collapsed state */
+    #left-panel.sidebar-collapsed .config-button {
+      position: relative;
+    }
+
+    #left-panel.sidebar-collapsed .config-button::after {
+      content: attr(title);
+      position: absolute;
+      left: calc(100% + 8px);
+      top: 50%;
+      transform: translateY(-50%);
+      background: var(--color-panel);
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      color: var(--color-text);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+      z-index: 9999;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    #left-panel.sidebar-collapsed .config-button:hover::after {
+      opacity: 1;
     }
 
     /* Ensure component host behaves like the original direct children for flex layout */
@@ -68,32 +243,37 @@
     #left-panel>.left-panel-top {
       flex: 1;
       min-height: 0;
-      /* allow inner flex children to shrink properly */
     }
 
     #left-panel.hidden {
-      margin-left: -250px;
+      margin-left: -280px;
+    }
+
+    #left-panel.sidebar-collapsed.hidden {
+      margin-left: -72px;
     }
 
     .left-panel-top {
       flex: 1 1 auto;
-      /* Take available space */
       display: -webkit-flex;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      /* Critical for allowing flex children to shrink */
       overflow: hidden;
       justify-content: space-between;
       margin-top: 3.5rem;
       padding: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
     }
 
+    /* Collapsed: reduce horizontal padding */
+    #left-panel.sidebar-collapsed .left-panel-top {
+      padding: var(--spacing-xs) var(--spacing-xs) 0 var(--spacing-xs);
+    }
+
     .left-panel-bottom {
       position: relative;
       flex-shrink: 0;
       flex-grow: 0;
-      /* Prevent bottom from growing */
     }
 
     /* Chats section container inside sidebar */
@@ -103,7 +283,6 @@
       flex-direction: column;
       min-height: 0;
       flex: 1 1 auto;
-      /* Take all available space */
       max-height: 100%;
       overflow: hidden;
     }
@@ -115,9 +294,7 @@
       flex-direction: column;
       min-height: 0;
       flex: 0 0 auto;
-      /* Shrink to content, no reserved space */
       max-height: 40%;
-      /* Limit to 40% of viewport height when expanded */
       margin-top: 0;
       padding-top: var(--spacing-md);
       overflow: hidden;
@@ -142,6 +319,7 @@
 
     /* During the collapsing transition, allow height animation to control size */
     #tasks-section .collapsing {
+      /* biome-ignore lint/complexity/noImportantStyles: overrides Bootstrap inline styles */
       flex: 0 0 auto !important;
     }
 
@@ -154,7 +332,6 @@
       margin: 0 0 0.5rem 0;
       padding: 0;
       -webkit-user-select: none;
-      /* Safari compatibility */
       user-select: none;
       font-size: var(--font-size-normal);
     }
@@ -168,21 +345,53 @@
       box-shadow: 1px 0 10px rgba(0, 0, 0, 0.1);
     }
 
+    /* Mobile: override hover-expand, keep fixed overlay */
     @media (max-width: 768px) {
       #left-panel {
         position: fixed;
         left: 0;
         top: 0;
         bottom: 0;
-        width: 250px !important;
-        /* Force width */
-        min-width: 250px;
         z-index: 1003;
-        transition: all var(--transition-speed) ease-in-out;
+      }
+
+      /* biome-ignore lint/complexity/noImportantStyles: mobile override */
+      #left-panel.sidebar-expanded,
+      #left-panel.sidebar-collapsed {
+        width: 250px !important;
+        min-width: 250px !important;
       }
 
       #left-panel.hidden {
         margin-left: -250px;
+      }
+
+      /* On mobile, always show text (no collapsed icon-only mode) */
+      #left-panel.sidebar-collapsed .sidebar-text-label,
+      #left-panel.sidebar-collapsed .section-header,
+      #left-panel.sidebar-collapsed .chat-name,
+      #left-panel.sidebar-collapsed .task-name,
+      #left-panel.sidebar-collapsed .task-info-line,
+      #left-panel.sidebar-collapsed .ctx-switcher,
+      #left-panel.sidebar-collapsed .empty-list-message,
+      #left-panel.sidebar-collapsed .version-info,
+      #left-panel.sidebar-collapsed .sidebar-admin-btn,
+      #left-panel.sidebar-collapsed .pref-section {
+        display: revert;
+      }
+
+      #left-panel.sidebar-collapsed #quick-actions {
+        flex-direction: row;
+      }
+
+      #left-panel.sidebar-collapsed .left-panel-top {
+        padding: var(--spacing-md) var(--spacing-md) 0 var(--spacing-md);
+      }
+
+      /* Hide pin button on mobile */
+      .sidebar-pin-btn {
+        /* biome-ignore lint/complexity/noImportantStyles: mobile override */
+        display: none !important;
       }
     }
 

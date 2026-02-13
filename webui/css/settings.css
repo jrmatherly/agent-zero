@@ -51,7 +51,7 @@ select {
 	border-radius: 0.25rem;
 	background-color: var(--color-background);
 	color: var(--color-text);
-	font-family: "Rubik", Arial, Helvetica, sans-serif;
+	font-family: var(--font-family-main);
 	outline: none;
 	transition: all 0.3s ease;
 }
@@ -126,7 +126,7 @@ textarea:focus {
 }
 
 input:checked + .toggler {
-	background-color: #2196f3;
+	background-color: var(--color-highlight);
 }
 
 input:checked + .toggler:before {

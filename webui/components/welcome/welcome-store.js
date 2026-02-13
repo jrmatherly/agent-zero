@@ -12,8 +12,48 @@ const model = {
 	lastBannerRefresh: 0,
 	hasDismissedBanners: false,
 
+	// Clock state
+	currentTime: "",
+	currentDate: "",
+	_clockInterval: null,
+
 	get isVisible() {
 		return !chatsStore.selected;
+	},
+
+	// System status (derived from existing stores)
+	get connectionStatus() {
+		const syncStore = Alpine.store("sync");
+		if (!syncStore) return "Unknown";
+		const mode = syncStore.mode;
+		if (mode === "HEALTHY") return "Connected";
+		if (mode === "DEGRADED") return "Degraded";
+		return "Disconnected";
+	},
+
+	get connectionStatusClass() {
+		const syncStore = Alpine.store("sync");
+		if (!syncStore) return "status-unknown";
+		const mode = syncStore.mode;
+		if (mode === "HEALTHY") return "status-healthy";
+		if (mode === "DEGRADED") return "status-degraded";
+		return "status-disconnected";
+	},
+
+	get activeChatCount() {
+		return chatsStore.contexts ? chatsStore.contexts.length : 0;
+	},
+
+	get agentStatus() {
+		const chatTop = Alpine.store("chatTop");
+		if (!chatTop) return "Idle";
+		return chatTop.connected ? "Online" : "Offline";
+	},
+
+	get agentStatusClass() {
+		const chatTop = Alpine.store("chatTop");
+		if (!chatTop) return "status-unknown";
+		return chatTop.connected ? "status-healthy" : "status-disconnected";
 	},
 
 	init() {
@@ -21,6 +61,17 @@ const model = {
 		document.addEventListener("settings-updated", () => {
 			this.refreshBanners(true);
 		});
+		this._startClock();
+	},
+
+	_startClock() {
+		const update = () => {
+			const now = new Date();
+			this.currentTime = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+			this.currentDate = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+		};
+		update();
+		this._clockInterval = setInterval(update, 30000);
 	},
 
 	onCreate() {

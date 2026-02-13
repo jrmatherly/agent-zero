@@ -64,14 +64,17 @@ some classes like modal-header are shared between the old and the new system */
 
 /* Modal Container (old system) */
 .modal-container {
-	background-color: var(--color-panel);
+	background: var(--color-glass-bg, var(--color-panel));
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid var(--color-glass-border, var(--color-border));
 	border-radius: 12px;
 	width: 1100px; /* Reduced from 1200px to 1100px */
 	max-height: 90vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	box-shadow: 0 4px 23px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
 	box-sizing: border-box;
 }
 
@@ -252,13 +255,13 @@ some classes like modal-header are shared between the old and the new system */
 	cursor: pointer;
 	border: none;
 	font-size: 0.875rem;
-	font-family: "Rubik", Arial, Helvetica, sans-serif;
+	font-family: var(--font-family-main);
 }
 .btn.slim {
 	padding: 0.2em 0.4em;
 }
 .btn.primary {
-	background: #2196f3;
+	background: var(--color-highlight);
 	color: white;
 	width: fit-content;
 }
@@ -266,7 +269,7 @@ some classes like modal-header are shared between the old and the new system */
 	cursor: not-allowed;
 }
 .btn-ok {
-	background: #4248f1;
+	background: var(--color-highlight);
 	color: white;
 	display: inline-flex;
 	align-items: center;
@@ -277,10 +280,10 @@ some classes like modal-header are shared between the old and the new system */
 	max-width: 20px;
 }
 .btn-ok:hover {
-	background: #353bc5;
+	background: var(--color-highlight-dim, #B8860B);
 }
 .btn-ok:active {
-	background: #2b309c;
+	background: #96791E;
 }
 .btn-cancel {
 	background: transparent;
@@ -307,7 +310,7 @@ some classes like modal-header are shared between the old and the new system */
 	color: var(--color-background);
 }
 .btn-field {
-	background: #2196f3;
+	background: var(--color-highlight);
 	color: white;
 	width: fit-content;
 }

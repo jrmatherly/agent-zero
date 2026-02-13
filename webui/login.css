@@ -1,7 +1,7 @@
 body {
 	background-color: #131313;
 	color: #d4d4d4;
-	font-family: "Rubik", Arial, Helvetica, sans-serif;
+	font-family: var(--font-family-main);
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -64,7 +64,7 @@ button {
 	padding: 0.75rem;
 	border: none;
 	border-radius: 0.5rem;
-	background-color: #4248f1;
+	background-color: var(--color-highlight);
 	color: white;
 	font-size: 1rem;
 	cursor: pointer;
