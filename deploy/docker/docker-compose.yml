@@ -91,6 +91,7 @@ services:
     restart: unless-stopped
     profiles:
       - postgres
+    shm_size: 256m
     volumes:
       - postgres-data:/var/lib/postgresql/data
     environment:

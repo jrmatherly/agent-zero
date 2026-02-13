@@ -18,7 +18,9 @@ from python.helpers.print_style import PrintStyle
 
 def _run_migrations() -> None:
     """Run Alembic migrations to head."""
-    alembic_cfg = Config("alembic.ini")
+    from python.helpers.files import get_abs_path
+
+    alembic_cfg = Config(get_abs_path("alembic.ini"))
     db_url = os.environ.get("AUTH_DATABASE_URL", "sqlite:///usr/auth.db")
     alembic_cfg.set_main_option("sqlalchemy.url", db_url)
     command.upgrade(alembic_cfg, "head")

@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import os
 
 from python.helpers import dotenv
 
@@ -18,5 +19,18 @@ def get_credentials_hash():
 
 
 def is_login_required():
-    user = dotenv.get_dotenv_value(dotenv.KEY_AUTH_LOGIN)
-    return bool(user)
+    """Check if any authentication mechanism is configured.
+
+    Returns True when legacy single-user auth (AUTH_LOGIN) OR multi-user
+    auth (ADMIN_EMAIL with ADMIN_PASSWORD, or OIDC) is configured.
+    """
+    # Legacy single-user auth
+    if dotenv.get_dotenv_value(dotenv.KEY_AUTH_LOGIN):
+        return True
+    # Multi-user auth: admin account configured
+    if os.environ.get("ADMIN_EMAIL") and os.environ.get("ADMIN_PASSWORD"):
+        return True
+    # Multi-user auth: OIDC SSO configured
+    if os.environ.get("OIDC_CLIENT_ID") and os.environ.get("OIDC_TENANT_ID"):
+        return True
+    return False

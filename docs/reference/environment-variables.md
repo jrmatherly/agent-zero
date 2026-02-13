@@ -87,7 +87,7 @@ Seed EntraID group-to-org/team mappings at startup via environment variable, eli
 
 | Variable | Description | Values | Default | Required |
 |----------|-------------|--------|---------|----------|
-| `A0_SET_SSO_GROUP_MAPPINGS` | Semicolon-delimited EntraID group mapping definitions | See format below | _(empty)_ | No |
+| `A0_SET_SSO_GROUP_MAPPINGS` | Semicolon-delimited EntraID group mapping definitions | See format below | *(empty)* | No |
 
 **Format:** `entra_group_id:org_slug:team_slug:role` entries separated by semicolons.
 

@@ -247,13 +247,12 @@ def requires_auth(f):
             g.current_user = session.get("user")
             return await f(*args, **kwargs)
 
-        # Legacy fallback: AUTH_LOGIN/AUTH_PASSWORD env vars (pre-Phase 1)
-        user_pass_hash = login.get_credentials_hash()
-        if not user_pass_hash:
-            # No auth configured at all — proceed without auth
-            return await f(*args, **kwargs)
+        # If any auth mechanism is configured, require login
+        if login.is_login_required():
+            return redirect(url_for("login_handler"))
 
-        return redirect(url_for("login_handler"))
+        # No auth configured at all — proceed without auth
+        return await f(*args, **kwargs)
 
     return decorated
 

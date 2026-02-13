@@ -633,12 +633,14 @@ class TestAuthBootstrap:
             patch.object(auth_bootstrap.auth_db, "init_db") as mock_init,
             patch.object(auth_bootstrap, "_run_migrations") as mock_migrate,
             patch.object(auth_bootstrap, "_seed_defaults") as mock_seed,
+            patch.object(auth_bootstrap, "_seed_group_mappings") as mock_groups,
         ):
             auth_bootstrap.bootstrap()
 
             mock_init.assert_called_once()
             mock_migrate.assert_called_once()
             mock_seed.assert_called_once()
+            mock_groups.assert_called_once()
 
 
 # ===================================================================

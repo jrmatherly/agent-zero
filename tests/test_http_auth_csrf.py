@@ -1,6 +1,13 @@
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
 from flask import Flask, Response
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 from python.helpers import runtime
 
@@ -31,6 +38,7 @@ def test_http_auth_enforced_when_configured(monkeypatch) -> None:
     from run_ui import csrf_protect, requires_auth
 
     monkeypatch.setattr("python.helpers.login.get_credentials_hash", lambda: "hash")
+    monkeypatch.setattr("python.helpers.login.is_login_required", lambda: True)
 
     app = _make_app()
 
@@ -49,6 +57,7 @@ def test_http_csrf_required_even_when_auth_not_configured(monkeypatch) -> None:
     from run_ui import csrf_protect, requires_auth
 
     monkeypatch.setattr("python.helpers.login.get_credentials_hash", lambda: None)
+    monkeypatch.setattr("python.helpers.login.is_login_required", lambda: False)
 
     app = _make_app()
 
