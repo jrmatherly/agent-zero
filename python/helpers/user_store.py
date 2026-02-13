@@ -11,19 +11,21 @@ from datetime import datetime, timezone
 
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Boolean,
     Column,
     DateTime,
     ForeignKey,
+    Integer,
     String,
     Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import Session, relationship
 
-from python.helpers.auth_db import Base
 from python.helpers import vault_crypto
+from python.helpers.auth_db import Base
 
 # ---------------------------------------------------------------------------
 # ORM Models
@@ -187,6 +189,37 @@ class McpConnection(Base):
 
     user = relationship("User")
     service = relationship("McpServiceRegistry", back_populates="connections")
+
+
+class VectorDocument(Base):
+    """Durable vector storage backed by pgVector.
+
+    Used as the shared source of truth across Kubernetes pods.
+    FAISS remains the in-memory hot cache for active sessions.
+    """
+
+    __tablename__ = "vector_documents"
+
+    id = Column(String, primary_key=True)  # matches FAISS doc ID
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    org_id = Column(String, ForeignKey("organizations.id"), nullable=False)
+    team_id = Column(String, ForeignKey("teams.id"))
+    memory_subdir = Column(String, nullable=False)  # tenant-scoped path
+    area = Column(String, default="main")  # main / fragments / solutions
+    content = Column(Text, nullable=False)  # document page_content
+    metadata_json = Column(Text)  # serialized doc metadata (minus embedding)
+    embedding = Column(Vector(1536))  # dimension configurable via migration
+    embedding_model = Column(String)  # e.g. "openai/text-embedding-3-small"
+    embedding_dimensions = Column(Integer)  # actual vector length
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        # Tenant isolation + subdir lookup
+        # HNSW index created in migration (not expressible as SA Index)
+    )
+
+    user = relationship("User")
+    organization = relationship("Organization")
 
 
 # ---------------------------------------------------------------------------

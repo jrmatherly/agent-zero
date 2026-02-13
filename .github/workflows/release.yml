@@ -61,7 +61,7 @@ jobs:
           push: true
           platforms: linux/amd64
           build-args: |
-            BRANCH=main
+            BRANCH=${{ github.ref_name }}
             CACHE_DATE=${{ github.run_id }}
           tags: |
             ghcr.io/jrmatherly/apollos-ai:${{ github.ref_name }}

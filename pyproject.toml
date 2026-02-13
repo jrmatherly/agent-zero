@@ -70,6 +70,7 @@ dependencies = [
     "casbin>=1.43.0",
     "casbin-sqlalchemy-adapter>=1.4.0",
     "psycopg2-binary>=2.9.11",
+    "pgvector>=0.3.6",
 ]
 
 [dependency-groups]

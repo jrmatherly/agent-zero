@@ -9,9 +9,9 @@ Call :func:`bootstrap` once at application startup (from ``run_ui.py``).
 
 import os
 
-from alembic import command
 from alembic.config import Config
 
+from alembic import command
 from python.helpers import auth_db, user_store
 from python.helpers.print_style import PrintStyle
 
@@ -194,5 +194,17 @@ def bootstrap() -> None:
                     rbac.sync_user_roles(admin.id)
     except Exception as e:
         PrintStyle.warning(f"RBAC initialization skipped: {e}")
+
+    # Check pgVector availability for hybrid vector storage
+    try:
+        from python.helpers.vector_store import pgvector_store
+
+        if pgvector_store.is_available():
+            PrintStyle.info(
+                "Auth bootstrap: pgVector hybrid mode active — "
+                "vectors will be durably stored in PostgreSQL."
+            )
+    except Exception as e:
+        PrintStyle.debug(f"pgVector check skipped: {e}")
 
     PrintStyle.info("Auth bootstrap: complete.")

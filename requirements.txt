@@ -586,6 +586,7 @@ numpy==1.26.4
     #   openai-whisper
     #   opencv-python
     #   pandas
+    #   pgvector
     #   pycocotools
     #   scikit-learn
     #   scipy
@@ -716,6 +717,8 @@ pdfminer-six==20260107
     # via
     #   unstructured
     #   unstructured-inference
+pgvector==0.4.2
+    # via apollos-ai
 phonemizer-fork==3.3.2
     # via misaki
 pi-heif==1.2.0

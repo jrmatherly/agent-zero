@@ -50,11 +50,23 @@ def init_db(url: str | None = None) -> None:
     url = url or os.environ.get("AUTH_DATABASE_URL", _DEFAULT_URL)
 
     connect_args: dict = {}
+    engine_kwargs: dict = {"echo": False}
+
     if url.startswith("sqlite"):
         # SQLite is not thread-safe by default; allow multi-threaded access
         connect_args["check_same_thread"] = False
+    else:
+        # PostgreSQL connection pool tuning
+        engine_kwargs.update(
+            {
+                "pool_size": 10,  # maintained connections
+                "max_overflow": 20,  # burst capacity above pool_size
+                "pool_pre_ping": True,  # detect stale connections after PG restart
+                "pool_recycle": 1800,  # recycle connections after 30 minutes
+            }
+        )
 
-    _engine = create_engine(url, echo=False, connect_args=connect_args)
+    _engine = create_engine(url, connect_args=connect_args, **engine_kwargs)
     _SessionLocal = sessionmaker(bind=_engine)
 
     PrintStyle.info(f"Auth database initialized ({url.split('://')[0]} backend)")

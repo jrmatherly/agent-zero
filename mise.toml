@@ -178,7 +178,7 @@ docker build -f DockerfileLocal -t apollos-ai-local \
   --platform linux/amd64 \
   --build-arg CACHE_DATE=$(date +%Y-%m-%d:%H:%M:%S) .
 '''
-sources = ["DockerfileLocal", "requirements.txt", "docker/**"]
+sources = ["DockerfileLocal", "requirements.txt", "docker/**", "alembic/**", "python/**", "webui/**", "prompts/**", "run_ui.py", "pyproject.toml"]
 
 [tasks."docker:build"]
 description = "Build base + local Docker images in order"
@@ -239,12 +239,20 @@ description = "Stop deploy stack"
 run = "docker compose -f deploy/docker/docker-compose.yml --profile proxy --profile postgres down"
 
 [tasks."docker:down:local"]
-description = "Stop deploy stack with locally built image"
+description = "Stop local deploy stack"
+run = "docker compose -f deploy/docker/docker-compose.yml -f deploy/docker/docker-compose.local.yml --profile proxy --profile postgres down"
+
+[tasks."docker:down:local:clean"]
+description = "Stop local deploy stack and remove volumes"
 run = "docker compose -f deploy/docker/docker-compose.yml -f deploy/docker/docker-compose.local.yml --profile proxy --profile postgres down -v"
 
 [tasks."docker:logs"]
 description = "Tail deploy stack logs"
 run = "docker compose -f deploy/docker/docker-compose.yml logs -f"
+
+[tasks."docker:logs:local"]
+description = "Tail local deploy stack logs"
+run = "docker compose -f deploy/docker/docker-compose.yml -f deploy/docker/docker-compose.local.yml logs -f"
 
 # ============================================================================
 # Git Hooks (hk)

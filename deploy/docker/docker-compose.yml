@@ -85,7 +85,7 @@ services:
   # Production-grade auth database. When enabled, set in .env:
   #   AUTH_DATABASE_URL=postgresql://apollos:${POSTGRES_PASSWORD}@postgres:5432/apollos_auth
   postgres:
-    image: postgres:17-alpine
+    image: pgvector/pgvector:pg18
     container_name: apollos-ai-db
     restart: unless-stopped
     profiles:
