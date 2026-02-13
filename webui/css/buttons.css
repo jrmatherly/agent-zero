@@ -20,6 +20,11 @@
 .button.confirm {
 	background: var(--color-highlight);
 	color: #fff;
+	border-color: transparent;
+}
+
+.button.confirm:hover {
+	box-shadow: 0 0 12px rgba(212, 175, 55, 0.3);
 }
 
 .button.cancel {

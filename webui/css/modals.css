@@ -64,14 +64,17 @@ some classes like modal-header are shared between the old and the new system */
 
 /* Modal Container (old system) */
 .modal-container {
-	background-color: var(--color-panel);
+	background: var(--color-glass-bg, var(--color-panel));
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid var(--color-glass-border, var(--color-border));
 	border-radius: 12px;
 	width: 1100px; /* Reduced from 1200px to 1100px */
 	max-height: 90vh;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	box-shadow: 0 4px 23px rgba(0, 0, 0, 0.2);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
 	box-sizing: border-box;
 }
 
