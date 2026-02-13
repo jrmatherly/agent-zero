@@ -98,6 +98,7 @@ class TenantContext:
         dirs = [
             self.chats_dir,
             self.uploads_dir,
+            self.workdir,
         ]
         for d in dirs:
             abs_path = files.get_abs_path(d)

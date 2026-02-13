@@ -800,6 +800,8 @@ def run():
     # migrate data before anything else
     initialize.initialize_migration()
 
+    os.makedirs(files.get_abs_path("usr/baseline"), exist_ok=True)
+
     # # Suppress only request logs but keep the startup messages
     # from werkzeug.serving import WSGIRequestHandler
     # from werkzeug.serving import make_server

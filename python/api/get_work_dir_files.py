@@ -19,7 +19,7 @@ class GetWorkDirFiles(ApiHandler):
 
         current_path = request.args.get("path", "")
         if current_path == "$WORK_DIR":
-            current_path = "/a0"
+            current_path = ""
 
         result = await runtime.call_development_function(
             get_files, current_path, workspace
