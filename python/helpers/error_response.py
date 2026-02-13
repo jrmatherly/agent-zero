@@ -4,8 +4,6 @@ import traceback
 
 from flask import Response
 
-from python.helpers import runtime
-
 logger = logging.getLogger(__name__)
 
 
@@ -18,8 +16,8 @@ def safe_error_response(
 ) -> Response:
     """Return a generic error to the client; log the real error server-side.
 
-    In development mode (non-Docker), the actual exception message is included
-    for easier debugging. In production, only the safe_message is returned.
+    Only the safe_message is returned to the user. The actual exception
+    details (message + stack trace) are logged server-side for debugging.
     """
     logger.error(
         "API error%s: %s\n%s",
@@ -28,13 +26,8 @@ def safe_error_response(
         traceback.format_exc(),
     )
 
-    if runtime.is_development():
-        msg = str(e)
-    else:
-        msg = safe_message
-
     return Response(
-        json.dumps({"error": msg}),
+        json.dumps({"error": safe_message}),
         status=status,
         mimetype="application/json",
     )
