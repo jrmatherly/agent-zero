@@ -5,6 +5,14 @@ const model = {
   isOpen: true,
   _initialized: false,
 
+  // Hover-expand sidebar state
+  _isHovered: false,
+  _isPinned: true, // Default pinned (backwards-compatible with existing 250px behavior)
+
+  get isExpanded() {
+    return this._isHovered || this._isPinned;
+  },
+
   // Centralized collapse state for all sidebar sections (persisted in localStorage)
   sectionStates: {
     tasks: false,       // default: collapsed
@@ -17,6 +25,7 @@ const model = {
     if (this._initialized) return;
     this._initialized = true;
 
+    this.loadPinState();
     this.loadSectionStates();
     this.handleResize();
     this.resizeHandler = () => this.handleResize();
@@ -56,6 +65,54 @@ const model = {
     this.persistSectionStates();
   },
 
+  // Load pin state from localStorage
+  loadPinState() {
+    try {
+      const stored = localStorage.getItem('sidebarPinned');
+      if (stored !== null) {
+        this._isPinned = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.error('Failed to load sidebar pin state', e);
+    }
+  },
+
+  // Toggle pin state and persist
+  togglePin() {
+    this._isPinned = !this._isPinned;
+    try {
+      localStorage.setItem('sidebarPinned', JSON.stringify(this._isPinned));
+    } catch (e) {
+      console.error('Failed to persist sidebar pin state', e);
+    }
+  },
+
+  // Hover handlers (desktop only)
+  onMouseEnter() {
+    if (!this.isMobile()) {
+      this._isHovered = true;
+    }
+  },
+
+  onMouseLeave() {
+    if (!this.isMobile()) {
+      this._isHovered = false;
+    }
+  },
+
+  // Keyboard accessibility: expand on focus-within
+  onFocusIn() {
+    if (!this.isMobile()) {
+      this._isHovered = true;
+    }
+  },
+
+  onFocusOut(event, panelEl) {
+    if (!this.isMobile() && panelEl && !panelEl.contains(event.relatedTarget)) {
+      this._isHovered = false;
+    }
+  },
+
   // Cleanup method for lifecycle management
   destroy() {
     if (this.resizeHandler) {
@@ -89,7 +146,7 @@ const model = {
 
   // Dropdown positioning for quick-actions (fixed position to escape overflow:hidden)
   dropdownStyle: {},
-  
+
   updateDropdownPosition(triggerElement) {
     if (!triggerElement) return;
     const rect = triggerElement.getBoundingClientRect();

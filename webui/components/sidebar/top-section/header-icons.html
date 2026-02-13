@@ -65,9 +65,23 @@
 
     .light-mode #logo-container img { -webkit-filter: invert(100%) grayscale(100%); filter: invert(100%) grayscale(100%); }
 
+    /* Collapsed state: hide logo, center toggle button */
+    .sidebar-collapsed #logo-container {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .sidebar-collapsed .toggle-sidebar-button {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
     @media (max-width: 768px) {
       .toggle-sidebar-button { position: fixed; left: var(--spacing-md); z-index: 1004; }
       #logo-container { -webkit-transition: all 0.3s ease; transition: all 0.3s ease; z-index: 1004; }
+      /* On mobile, always show logo */
+      .sidebar-collapsed #logo-container { opacity: 1; pointer-events: auto; }
+      .sidebar-collapsed .toggle-sidebar-button { left: var(--spacing-md); transform: none; }
     }
   </style>
 </body>
