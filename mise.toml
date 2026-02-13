@@ -326,10 +326,11 @@ fi
 echo ""
 echo "This will:"
 echo "  1. Update pyproject.toml version to ${NEW_VERSION}"
-echo "  2. Generate CHANGELOG.md for ${TAG}"
-echo "  3. Commit: \"chore(release): ${TAG}\""
-echo "  4. Create git tag ${TAG}"
-echo "  5. Push commit + tag to origin (triggers CI release + Docker build)"
+echo "  2. Sync uv.lock"
+echo "  3. Generate CHANGELOG.md for ${TAG}"
+echo "  4. Commit: \"chore(release): ${TAG}\""
+echo "  5. Create git tag ${TAG}"
+echo "  6. Push commit + tag to origin (triggers CI release + Docker build)"
 echo ""
 read -rp "Proceed? [y/N] " confirm
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
@@ -342,20 +343,24 @@ sed -i.bak "s/^version = \"${CURRENT}\"/version = \"${NEW_VERSION}\"/" pyproject
 rm -f pyproject.toml.bak
 echo "✓ pyproject.toml → ${NEW_VERSION}"
 
-# ─── 2. Generate changelog ────────────────────────────────────────────
+# ─── 2. Sync lockfile ────────────────────────────────────────────────
+uv lock
+echo "✓ uv.lock synced"
+
+# ─── 3. Generate changelog ────────────────────────────────────────────
 git-cliff --tag "${TAG}" --output CHANGELOG.md
 echo "✓ CHANGELOG.md updated"
 
-# ─── 3. Commit ────────────────────────────────────────────────────────
-git add pyproject.toml CHANGELOG.md
+# ─── 4. Commit ────────────────────────────────────────────────────────
+git add pyproject.toml uv.lock CHANGELOG.md
 git commit -m "chore(release): ${TAG}"
 echo "✓ Committed"
 
-# ─── 4. Tag ───────────────────────────────────────────────────────────
+# ─── 5. Tag ───────────────────────────────────────────────────────────
 git tag -a "${TAG}" -m "Release ${TAG}"
 echo "✓ Tagged ${TAG}"
 
-# ─── 5. Push ──────────────────────────────────────────────────────────
+# ─── 6. Push ──────────────────────────────────────────────────────────
 git push origin main "${TAG}"
 echo "✓ Pushed to origin"
 
