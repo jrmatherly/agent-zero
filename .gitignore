@@ -66,6 +66,7 @@ agent_history.gif
 .full-review/
 SECURITY_AUDIT.md
 docs/analysis/
+deploy/docker/Caddyfile.local
 
 # Apollos AI Data
 my-data/
