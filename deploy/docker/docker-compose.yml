@@ -84,6 +84,11 @@ services:
   # ─── PostgreSQL Auth Database (--profile postgres) ──────────────────
   # Production-grade auth database. When enabled, set in .env:
   #   AUTH_DATABASE_URL=postgresql://apollos:${POSTGRES_PASSWORD}@postgres:5432/apollos_auth
+  #
+  # NOTE: PostgreSQL 18+ uses version-specific data directories under
+  # /var/lib/postgresql (e.g., /var/lib/postgresql/18/docker). The volume
+  # must mount at /var/lib/postgresql, NOT /var/lib/postgresql/data.
+  # See: https://github.com/docker-library/postgres/pull/1259
   postgres:
     image: pgvector/pgvector:pg18
     container_name: apollos-ai-db
@@ -92,7 +97,7 @@ services:
       - postgres
     shm_size: 256m
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     environment:
       POSTGRES_DB: apollos_auth
       POSTGRES_USER: apollos

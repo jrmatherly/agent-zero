@@ -21,6 +21,11 @@ def _run_migrations() -> None:
     from python.helpers.files import get_abs_path
 
     alembic_cfg = Config(get_abs_path("alembic.ini"))
+    # Override script_location with absolute path — the ini file uses a
+    # relative path ("alembic") which Alembic resolves against CWD, not
+    # the ini file's directory.  In Docker the CWD is / so the relative
+    # path fails.
+    alembic_cfg.set_main_option("script_location", get_abs_path("alembic"))
     db_url = os.environ.get("AUTH_DATABASE_URL", "sqlite:///usr/auth.db")
     alembic_cfg.set_main_option("sqlalchemy.url", db_url)
     command.upgrade(alembic_cfg, "head")
