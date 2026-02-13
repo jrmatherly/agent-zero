@@ -79,10 +79,53 @@ generate_password() {
         || head -c 18 /dev/urandom | base64
 }
 
+# ─── Configure Caddy TLS helper ──────────────────────────────────────
+configure_caddy_tls() {
+    local mode="$1"
+    local caddyfile="Caddyfile"
+
+    # Normalize: comment out all active site-address and tls-directive lines
+    # (already-commented lines are unaffected by these substitutions)
+    local TAB
+    TAB="$(printf '\t')"
+    sed -i.bak \
+        -e 's|^{[$]DOMAIN|# {$DOMAIN|' \
+        -e 's|^http://{[$]DOMAIN|# http://{$DOMAIN|' \
+        -e "s|^${TAB}tls /etc/caddy/certs/|${TAB}# tls /etc/caddy/certs/|" \
+        -e "s|^${TAB}tls internal|${TAB}# tls internal|" \
+        "$caddyfile"
+
+    # Activate the desired lines based on mode
+    case "$mode" in
+        1)  # Custom certificates
+            sed -i.bak \
+                -e 's|^# {[$]DOMAIN|{$DOMAIN|' \
+                -e "s|^${TAB}# tls /etc/caddy/certs/|${TAB}tls /etc/caddy/certs/|" \
+                "$caddyfile"
+            ;;
+        2)  # Automatic HTTPS (Let's Encrypt — no tls directive needed)
+            sed -i.bak -e 's|^# {[$]DOMAIN|{$DOMAIN|' "$caddyfile"
+            ;;
+        3)  # Self-signed HTTPS
+            sed -i.bak \
+                -e 's|^# {[$]DOMAIN|{$DOMAIN|' \
+                -e "s|^${TAB}# tls internal|${TAB}tls internal|" \
+                "$caddyfile"
+            ;;
+        4)  # HTTP-only
+            sed -i.bak -e 's|^# http://{[$]DOMAIN|http://{$DOMAIN|' "$caddyfile"
+            ;;
+    esac
+
+    rm -f "${caddyfile}.bak"
+}
+
 # ─── Create .env ──────────────────────────────────────────────────────
+ENV_CREATED=false
 if [ -f .env ]; then
     ok ".env already exists — skipping creation."
 else
+    ENV_CREATED=true
     info "Creating .env from .env.example..."
     cp .env.example .env
 
@@ -140,50 +183,93 @@ if [[ " ${PROFILES[*]} " =~ " postgres " ]]; then
     fi
 fi
 
-# ─── CORS for custom domain ──────────────────────────────────────────
+# ─── TLS mode selection (proxy only) ─────────────────────────────────
+TLS_MODE=""
 if [[ " ${PROFILES[*]} " =~ " proxy " ]]; then
-    # Read DOMAIN from .env to auto-configure CORS
+    if [ "$ENV_CREATED" = true ]; then
+        # First run — prompt for TLS mode
+        echo ""
+        info "TLS mode for Caddy reverse proxy:"
+        echo "  1) Custom certificates — provide cert.pem and key.pem in certs/"
+        echo "  2) Automatic HTTPS — Let's Encrypt (requires public FQDN + ports 80/443)"
+        echo "  3) Self-signed HTTPS — local development with HTTPS"
+        echo "  4) HTTP-only — local development without TLS"
+        read -rp "  Select [1-4] (default: 1): " TLS_MODE
+        TLS_MODE="${TLS_MODE:-1}"
+
+        case "$TLS_MODE" in
+            1|2|3|4) ;;
+            *) warn "Invalid choice '$TLS_MODE', defaulting to 1"; TLS_MODE=1 ;;
+        esac
+
+        configure_caddy_tls "$TLS_MODE"
+        ok "Configured Caddyfile for TLS mode $TLS_MODE"
+    else
+        # Re-run — detect TLS mode from Caddyfile
+        if grep -q '^http://' Caddyfile 2>/dev/null; then
+            TLS_MODE=4
+        elif grep -q '^[[:space:]]*tls internal' Caddyfile 2>/dev/null; then
+            TLS_MODE=3
+        elif grep -q '^[[:space:]]*tls /etc/caddy/certs/' Caddyfile 2>/dev/null; then
+            TLS_MODE=1
+        else
+            TLS_MODE=2
+        fi
+    fi
+fi
+
+# ─── Protocol-aware CORS for custom domain ───────────────────────────
+if [[ " ${PROFILES[*]} " =~ " proxy " ]]; then
+    # Determine URL scheme based on TLS mode
+    if [ "$TLS_MODE" = "4" ]; then
+        PROTO="http"
+    else
+        PROTO="https"
+    fi
+
     DOMAIN_VAL=$(grep '^DOMAIN=' .env 2>/dev/null | cut -d= -f2)
     if [ -n "$DOMAIN_VAL" ] && [ "$DOMAIN_VAL" != "localhost" ]; then
         if grep -q '^# CORS_ALLOWED_ORIGINS=' .env 2>/dev/null; then
-            sed -i.bak "s|^# CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=https://${DOMAIN_VAL}|" .env
+            sed -i.bak "s|^# CORS_ALLOWED_ORIGINS=.*|CORS_ALLOWED_ORIGINS=${PROTO}://${DOMAIN_VAL}|" .env
             rm -f .env.bak
-            ok "Set CORS_ALLOWED_ORIGINS=https://${DOMAIN_VAL}"
+            ok "Set CORS_ALLOWED_ORIGINS=${PROTO}://${DOMAIN_VAL}"
         fi
 
         # ALLOWED_ORIGINS (CSRF)
         if grep -q '^# ALLOWED_ORIGINS=' .env 2>/dev/null; then
-            sed -i.bak "s|^# ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=https://${DOMAIN_VAL}|" .env
+            sed -i.bak "s|^# ALLOWED_ORIGINS=.*|ALLOWED_ORIGINS=${PROTO}://${DOMAIN_VAL}|" .env
             rm -f .env.bak
-            ok "Set ALLOWED_ORIGINS=https://${DOMAIN_VAL}"
+            ok "Set ALLOWED_ORIGINS=${PROTO}://${DOMAIN_VAL}"
         fi
 
-        # SESSION_COOKIE_SECURE
-        if grep -q '^# SESSION_COOKIE_SECURE=' .env 2>/dev/null; then
-            sed -i.bak "s|^# SESSION_COOKIE_SECURE=.*|SESSION_COOKIE_SECURE=true|" .env
-            rm -f .env.bak
-            ok "Set SESSION_COOKIE_SECURE=true"
+        # SESSION_COOKIE_SECURE (only for HTTPS modes)
+        if [ "$TLS_MODE" != "4" ]; then
+            if grep -q '^# SESSION_COOKIE_SECURE=' .env 2>/dev/null; then
+                sed -i.bak "s|^# SESSION_COOKIE_SECURE=.*|SESSION_COOKIE_SECURE=true|" .env
+                rm -f .env.bak
+                ok "Set SESSION_COOKIE_SECURE=true"
+            fi
         fi
 
         # MCP_SERVER_BASE_URL
         if grep -q '^# MCP_SERVER_BASE_URL=' .env 2>/dev/null; then
-            sed -i.bak "s|^# MCP_SERVER_BASE_URL=.*|MCP_SERVER_BASE_URL=https://${DOMAIN_VAL}|" .env
+            sed -i.bak "s|^# MCP_SERVER_BASE_URL=.*|MCP_SERVER_BASE_URL=${PROTO}://${DOMAIN_VAL}|" .env
             rm -f .env.bak
-            ok "Set MCP_SERVER_BASE_URL=https://${DOMAIN_VAL}"
+            ok "Set MCP_SERVER_BASE_URL=${PROTO}://${DOMAIN_VAL}"
         fi
 
         # APP_BASE_URL
         if grep -q '^# APP_BASE_URL=' .env 2>/dev/null; then
-            sed -i.bak "s|^# APP_BASE_URL=.*|APP_BASE_URL=https://${DOMAIN_VAL}|" .env
+            sed -i.bak "s|^# APP_BASE_URL=.*|APP_BASE_URL=${PROTO}://${DOMAIN_VAL}|" .env
             rm -f .env.bak
-            ok "Set APP_BASE_URL=https://${DOMAIN_VAL}"
+            ok "Set APP_BASE_URL=${PROTO}://${DOMAIN_VAL}"
         fi
 
         # OIDC_REDIRECT_URI
         if grep -q '^# OIDC_REDIRECT_URI=' .env 2>/dev/null; then
-            sed -i.bak "s|^# OIDC_REDIRECT_URI=.*|OIDC_REDIRECT_URI=https://${DOMAIN_VAL}/auth/callback|" .env
+            sed -i.bak "s|^# OIDC_REDIRECT_URI=.*|OIDC_REDIRECT_URI=${PROTO}://${DOMAIN_VAL}/auth/callback|" .env
             rm -f .env.bak
-            ok "Set OIDC_REDIRECT_URI=https://${DOMAIN_VAL}/auth/callback"
+            ok "Set OIDC_REDIRECT_URI=${PROTO}://${DOMAIN_VAL}/auth/callback"
         fi
     fi
 fi
@@ -191,15 +277,19 @@ fi
 # ─── Certs directory ──────────────────────────────────────────────────
 if [[ " ${PROFILES[*]} " =~ " proxy " ]]; then
     mkdir -p certs/ca
-    # Check what TLS mode the Caddyfile is using (only match uncommented lines)
-    if grep -q '^[[:space:]]*tls internal' Caddyfile 2>/dev/null; then
-        ok "Caddyfile is using internal TLS (self-signed) — no certificate files needed."
-    elif [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then
-        warn "No TLS certificates found in certs/"
-        warn "Place your cert.pem and key.pem there, or edit Caddyfile for automatic HTTPS."
-    else
-        ok "TLS certificates found in certs/"
-    fi
+    case "$TLS_MODE" in
+        1)
+            if [ ! -f certs/cert.pem ] || [ ! -f certs/key.pem ]; then
+                warn "No TLS certificates found in certs/"
+                warn "Place your cert.pem and key.pem there before starting."
+            else
+                ok "TLS certificates found in certs/"
+            fi
+            ;;
+        2)  ok "Using automatic HTTPS (Let's Encrypt) — no certificate files needed." ;;
+        3)  ok "Using self-signed TLS (Caddy internal) — no certificate files needed." ;;
+        4)  ok "Using HTTP-only mode — no certificate files needed." ;;
+    esac
 fi
 
 # ─── Build compose command ────────────────────────────────────────────

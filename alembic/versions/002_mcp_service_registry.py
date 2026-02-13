@@ -39,7 +39,7 @@ def upgrade() -> None:
         sa.Column("default_scopes", sa.String()),
         # common
         sa.Column("icon_url", sa.String()),
-        sa.Column("is_enabled", sa.Boolean(), server_default=sa.text("1")),
+        sa.Column("is_enabled", sa.Boolean(), server_default=sa.text("true")),
         sa.Column("created_at", sa.DateTime()),
         sa.ForeignKeyConstraint(["org_id"], ["organizations.id"]),
         sa.PrimaryKeyConstraint("id"),

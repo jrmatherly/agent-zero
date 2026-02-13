@@ -87,7 +87,10 @@ docker run --rm -v apollos-ai-data:/data -v $(pwd):/backup \
 |------|---------------------------|----------|
 | **Custom certs** (default) | `tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem` | You have existing certs |
 | **Automatic HTTPS** | *Comment out the `tls` line* | Public domain, Let's Encrypt |
-| **Self-signed** | `tls internal` | Local development |
+| **Self-signed** | `tls internal` | Local development with HTTPS |
+| **HTTP-only** | `http://{$DOMAIN}` site address, no `tls` line | Local development without TLS |
+
+> **Note:** `setup.sh --proxy` now prompts for TLS mode selection and configures the Caddyfile automatically.
 
 ---
 

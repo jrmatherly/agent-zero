@@ -1,25 +1,27 @@
 # Apollos AI — Caddy Reverse Proxy Configuration
 #
-# MODE 1: Custom Certificates (default)
-#   Place your cert and key in the certs/ directory:
-#     certs/cert.pem   — Full certificate chain (cert + intermediates)
-#     certs/key.pem    — Private key
-#   Set DOMAIN in .env to your hostname.
+# TLS MODE 1: Custom Certificates (default)
+#   Place cert.pem and key.pem in certs/. Set DOMAIN in .env.
 #
-# MODE 2: Automatic HTTPS (Let's Encrypt)
-#   Comment out the "tls" line below and Caddy will automatically
-#   obtain and renew certificates via ACME. Requires:
-#     - DOMAIN set to a publicly reachable FQDN
-#     - Ports 80 and 443 open and reachable from the internet
+# TLS MODE 2: Automatic HTTPS (Let's Encrypt)
+#   Comment out the "tls" line. Requires public FQDN + ports 80/443.
 #
-# MODE 3: Local Development (self-signed)
-#   Set DOMAIN=localhost in .env and change the tls line to:
-#     tls internal
+# TLS MODE 3: Self-signed HTTPS (local dev with HTTPS)
+#   Change the tls line to: tls internal
+#
+# TLS MODE 4: HTTP-only (local dev without TLS)
+#   Comment out the HTTPS site address, uncomment the HTTP one.
+#   Comment out the tls line.
+#
+# To switch modes, activate exactly one site address and at most one tls line.
+# setup.sh --proxy automates this selection.
 
+# Site address — exactly one must be uncommented:
 {$DOMAIN:localhost} {
-	# Custom certificates (default) — comment this line for automatic HTTPS
+# http://{$DOMAIN:localhost} {
+
+	# TLS — at most one active (none = Let's Encrypt / HTTP-only):
 	tls /etc/caddy/certs/cert.pem /etc/caddy/certs/key.pem
-	# Local development — uncomment below (and comment the line above) for self-signed:
 	# tls internal
 
 	reverse_proxy apollos-ai:80 {
@@ -33,6 +35,7 @@
 	}
 
 	# Security headers
+	# Note: HSTS is harmless over HTTP (browsers ignore it per RFC 6797).
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options nosniff
