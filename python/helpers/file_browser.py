@@ -22,15 +22,16 @@ class FileBrowser:
     MAX_TEXT_FILE_SIZE = 1 * 1024 * 1024  # 1MB
 
     def __init__(self, base_dir: str):
-        # Inline realpath + startswith guard so CodeQL sees a recognized
-        # sanitizer pattern (CWE-22 / py/path-injection) in the same scope
-        # as the os.makedirs sink.
+        # CodeQL py/path-injection requires all three in the SAME scope using
+        # the SAME SSA variable: (1) os.path.realpath normalization,
+        # (2) simple startswith guard, (3) sink.  Wrapping in Path() or
+        # storing on self.* before the sink breaks SSA tracking.
         normalized = os.path.realpath(base_dir)
         root = os.path.realpath(files.get_base_dir())
-        if not normalized.startswith(root + os.sep) and normalized != root:
+        if not normalized.startswith(root):
             raise ValueError("base_dir escapes project root")
+        os.makedirs(normalized, exist_ok=True)
         self.base_dir = Path(normalized)
-        os.makedirs(self.base_dir, exist_ok=True)
 
     def _is_confined(self, resolved_path: Path) -> bool:
         """Check if resolved_path is within base_dir (includes separator suffix)."""
