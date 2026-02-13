@@ -42,6 +42,21 @@ const model = {
   },
   _showUtils: false,
 
+  // Theme selection (executive vs classic)
+  get theme() {
+    return this._theme;
+  },
+  set theme(value) {
+    this._theme = value;
+    this._applyTheme(value);
+  },
+  _theme: "executive",
+
+  themeOptions: [
+    { label: "EXEC", value: "executive", title: "Executive (gold/charcoal)" },
+    { label: "CLASSIC", value: "classic", title: "Classic (blue/gray)" },
+  ],
+
   // Chat container width preference for HiDPI/large screens
   get chatWidth() {
     return this._chatWidth;
@@ -106,6 +121,16 @@ const model = {
         this._chatWidth = "55"; // Default to standard
       }
 
+      // Load theme preference
+      try {
+        const storedTheme = localStorage.getItem("theme");
+        if (storedTheme && this.themeOptions.some(opt => opt.value === storedTheme)) {
+          this._theme = storedTheme;
+        }
+      } catch {
+        this._theme = "executive";
+      }
+
       // Load detail mode preference
       try {
         const storedDetailMode = localStorage.getItem("detailMode");
@@ -125,6 +150,7 @@ const model = {
       }
 
       // Apply all preferences
+      this._applyTheme(this._theme);
       this._applyDarkMode(this._darkMode);
       this._applyAutoScroll(this._autoScroll);
       this._applySpeech(this._speech);
@@ -138,6 +164,11 @@ const model = {
 
   _applyAutoScroll(value) {
     // nothing for now
+  },
+
+  _applyTheme(value) {
+    document.body.setAttribute("data-theme", value);
+    localStorage.setItem("theme", value);
   },
 
   _applyDarkMode(value) {

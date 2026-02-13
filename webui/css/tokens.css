@@ -64,3 +64,78 @@
 	--color-glass-bg: rgba(255, 255, 255, 0.7);
 	--color-glass-border: rgba(107, 90, 27, 0.15);
 }
+
+/* === CLASSIC THEME (original blue/gray) === */
+/* Dark mode classic — applied via data-theme on <body> (dark-mode is default) */
+[data-theme="classic"] {
+	--color-background: #131313;
+	--color-chat-background: #212121;
+	--color-panel: #1a1a1a;
+	--color-message-bg: #2d2d2d;
+	--color-input: #131313;
+	--color-input-focus: #101010;
+	--color-highlight: #2b5ab9;
+	--color-primary: #737a81;
+	--color-text: #ffffff;
+	--color-text-muted: #d4d4d4e4;
+	--color-message-text: #e0e0e0;
+	--color-border: #444444a8;
+	--color-secondary: #656565;
+	--color-table-row: #272727;
+	--color-error-text: #e72323;
+	--color-warning-text: #e79c23;
+
+	/* Disable glass effects in classic theme */
+	--color-glass-bg: transparent;
+	--color-glass-border: transparent;
+	--color-glass-sidebar: transparent;
+	--color-highlight-dim: #1e40af;
+	--color-highlight-bright: #3b82f6;
+
+	/* Classic fonts (no serif, no display) */
+	--font-family-main: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-serif: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-display: "Rubik", Arial, Helvetica, sans-serif;
+	--font-family-code: "Roboto Mono", monospace;
+}
+
+/* Light mode classic */
+[data-theme="classic"].light-mode {
+	--color-background: #fafafa;
+	--color-chat-background: #fafafa;
+	--color-panel: #f0f0f0;
+	--color-message-bg: #ffffff;
+	--color-input: #e4e4e4;
+	--color-input-focus: #dadada;
+	--color-highlight: #2563eb;
+	--color-primary: #384653;
+	--color-text: #333333;
+	--color-text-muted: #333333e4;
+	--color-message-text: #333333;
+	--color-border: #bdbdbdcf;
+	--color-secondary: #e8eaf6;
+	--color-table-row: #edededf3;
+	--color-error-text: #920000;
+	--color-warning-text: #936214;
+	--color-glass-bg: transparent;
+	--color-glass-border: transparent;
+}
+
+/* Disable backdrop-filter in classic theme for performance */
+[data-theme="classic"] .glass-sidebar,
+[data-theme="classic"] .welcome-action-card,
+[data-theme="classic"] #input-section,
+[data-theme="classic"] .system-status {
+	backdrop-filter: none;
+	-webkit-backdrop-filter: none;
+}
+
+/* === REDUCED MOTION: disable backdrop-filter (GPU-intensive) === */
+@media (prefers-reduced-motion: reduce) {
+	* {
+		/* biome-ignore lint/complexity/noImportantStyles: required to override inline backdrop-filter for reduced-motion accessibility */
+		backdrop-filter: none !important;
+		/* biome-ignore lint/complexity/noImportantStyles: required to override inline backdrop-filter for reduced-motion accessibility */
+		-webkit-backdrop-filter: none !important;
+	}
+}
