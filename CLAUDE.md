@@ -110,7 +110,7 @@ All CI workflows use `jdx/mise-action@v3` for tool installation; security workfl
 
 ## Authentication
 
-Four-phase auth system on `feat/entraid-mcp-auth` branch:
+Four-phase auth system:
 
 - **Auth DB**: `auth_db.py` (SQLAlchemy), `user_store.py` (ORM + CRUD), `alembic/` (migrations)
 - **OIDC**: `auth.py` (MSAL/Entra ID), env: `OIDC_TENANT_ID`, `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URI`
