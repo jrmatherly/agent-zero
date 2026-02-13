@@ -515,12 +515,18 @@ class CodeExecution(Tool):
         return output
 
     async def ensure_cwd(self) -> str | None:
-        project_name = projects.get_context_project_name(self.agent.context)
-        if project_name:
-            path = projects.get_project_folder(project_name)
+        # Tenant-scoped workspace takes priority for authenticated users
+        tenant_ctx = self.agent.context.tenant_ctx
+        if tenant_ctx and not tenant_ctx.is_system:
+            path = files.get_abs_path(tenant_ctx.workdir)
         else:
-            set = settings.get_settings()
-            path = set.get("workdir_path")
+            # Legacy fallback: project folder or global workdir setting
+            project_name = projects.get_context_project_name(self.agent.context)
+            if project_name:
+                path = projects.get_project_folder(project_name)
+            else:
+                set = settings.get_settings()
+                path = set.get("workdir_path")
 
         if not path:
             return None

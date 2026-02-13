@@ -4,6 +4,12 @@ import os
 from python.helpers import files, runtime
 from python.helpers.api import ApiHandler, Input, Output, Request
 from python.helpers.file_browser import FileBrowser
+from python.helpers.workspace import (
+    get_baseline_root,
+    get_team_shared_root,
+    get_workspace_root,
+    resolve_virtual_path,
+)
 
 MAX_EDIT_FILE_SIZE = 1024 * 1024
 BINARY_SAMPLE_SIZE = 10 * 1024
@@ -27,21 +33,39 @@ class EditWorkDirFile(ApiHandler):
 
     async def process(self, input: Input, request: Request) -> Output:
         try:
+            tenant_ctx = self._get_tenant_ctx()
+            workspace = get_workspace_root(tenant_ctx)
+            baseline_dir = get_baseline_root()
+            shared_dir = get_team_shared_root(tenant_ctx)
+
             if request.method == "GET":
                 file_path = request.args.get("path", "")
                 if not file_path:
                     return {"error": "Path is required"}
-                if not file_path.startswith("/"):
-                    file_path = f"/{file_path}"
 
-                data = await runtime.call_development_function(load_file, file_path)
+                resolved_dir, resolved_path, _readonly = resolve_virtual_path(
+                    file_path, workspace, baseline_dir, shared_dir
+                )
+                if not resolved_path.startswith("/"):
+                    resolved_path = f"/{resolved_path}"
+
+                data = await runtime.call_development_function(
+                    load_file, resolved_path, resolved_dir
+                )
                 return {"data": data}
 
             file_path = input.get("path", "")
             if not file_path:
                 return {"error": "Path is required"}
-            if not file_path.startswith("/"):
-                file_path = f"/{file_path}"
+
+            if file_path.startswith("$BASELINE"):
+                return {"error": "Baseline files are read-only"}
+
+            resolved_dir, resolved_path, _readonly = resolve_virtual_path(
+                file_path, workspace, baseline_dir, shared_dir
+            )
+            if not resolved_path.startswith("/"):
+                resolved_path = f"/{resolved_path}"
 
             content = input.get("content", "")
             if not isinstance(content, str):
@@ -51,7 +75,9 @@ class EditWorkDirFile(ApiHandler):
             if content_size > MAX_EDIT_FILE_SIZE:
                 return {"error": "File exceeds 1 MB and cannot be edited"}
 
-            res = await runtime.call_development_function(save_file, file_path, content)
+            res = await runtime.call_development_function(
+                save_file, resolved_path, content, resolved_dir
+            )
             if not res:
                 return {"error": "Failed to save file"}
 
@@ -62,8 +88,8 @@ class EditWorkDirFile(ApiHandler):
             return {"error": self._extract_error_message(str(e))}
 
 
-async def load_file(file_path: str) -> dict:
-    browser = FileBrowser()
+async def load_file(file_path: str, base_dir: str) -> dict:
+    browser = FileBrowser(base_dir=base_dir)
     full_path = browser.get_full_path(file_path)
 
     if os.path.isdir(full_path):
@@ -92,6 +118,6 @@ async def load_file(file_path: str) -> dict:
     }
 
 
-def save_file(file_path: str, content: str) -> bool:
-    browser = FileBrowser()
+def save_file(file_path: str, content: str, base_dir: str) -> bool:
+    browser = FileBrowser(base_dir=base_dir)
     return browser.save_text_file(file_path, content)

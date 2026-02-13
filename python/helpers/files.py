@@ -514,6 +514,21 @@ def get_abs_path(*relative_paths):
     return os.path.join(get_base_dir(), *relative_paths)
 
 
+def get_confined_abs_path(path: str, boundary: str) -> str:
+    """Resolve an absolute path and verify it falls within a boundary directory.
+
+    Raises ValueError if the resolved path escapes the boundary.
+    """
+    abs_path = os.path.realpath(os.path.join(boundary, path))
+    boundary_resolved = os.path.realpath(boundary)
+    if (
+        not abs_path.startswith(boundary_resolved + os.sep)
+        and abs_path != boundary_resolved
+    ):
+        raise ValueError(f"Path {path!r} escapes boundary {boundary!r}")
+    return abs_path
+
+
 def get_abs_path_dockerized(*relative_paths):
     "Ensures the abs path is dockerized (i.e. /a0/... path)"
     abs = get_abs_path(*relative_paths)

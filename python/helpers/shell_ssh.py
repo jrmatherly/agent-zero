@@ -91,6 +91,7 @@ class SSHInteractiveSession:
                 initial_command = "unset PROMPT_COMMAND PS0; stty -echo"
                 if self.cwd:
                     initial_command = f"cd {self.cwd}; {initial_command}"
+                    PrintStyle.info(f"SSH session workspace: {self.cwd}")
                 self.shell.send(f"{initial_command}\n".encode())
 
                 # wait for initial prompt/output to settle

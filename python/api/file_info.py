@@ -3,6 +3,7 @@ from typing import TypedDict
 
 from python.helpers import files, runtime
 from python.helpers.api import ApiHandler, Input, Output, Request
+from python.helpers.workspace import get_workspace_root
 
 
 class FileInfoApi(ApiHandler):
@@ -11,8 +12,10 @@ class FileInfoApi(ApiHandler):
         return ("workdir", "read")
 
     async def process(self, input: Input, request: Request) -> Output:
+        tenant_ctx = self._get_tenant_ctx()
+        workspace = get_workspace_root(tenant_ctx)
         path = input.get("path", "")
-        info = await runtime.call_development_function(get_file_info, path)
+        info = await runtime.call_development_function(get_file_info, path, workspace)
         return info
 
 
@@ -33,8 +36,11 @@ class FileInfo(TypedDict):
     message: str
 
 
-async def get_file_info(path: str) -> FileInfo:
-    abs_path = files.get_abs_path(path)
+async def get_file_info(path: str, workspace: str | None = None) -> FileInfo:
+    if workspace:
+        abs_path = files.get_confined_abs_path(path, workspace)
+    else:
+        abs_path = files.get_abs_path(path)
     exists = os.path.exists(abs_path)
     message = ""
 

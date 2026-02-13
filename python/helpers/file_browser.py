@@ -21,13 +21,9 @@ class FileBrowser:
     MAX_FILE_SIZE = 100 * 1024 * 1024  # 100MB
     MAX_TEXT_FILE_SIZE = 1 * 1024 * 1024  # 1MB
 
-    def __init__(self):
-        # if runtime.is_development():
-        #     base_dir = files.get_base_dir()
-        # else:
-        #     base_dir = "/"
-        base_dir = "/"
-        self.base_dir = Path(base_dir)
+    def __init__(self, base_dir: str):
+        self.base_dir = Path(base_dir).resolve()
+        os.makedirs(self.base_dir, exist_ok=True)
 
     def _check_file_size(self, file) -> bool:
         try:
@@ -423,6 +419,55 @@ class FileBrowser:
         except Exception as e:
             PrintStyle.error(f"Error reading directory: {e}")
             return {"entries": [], "current_path": "", "parent_path": ""}
+
+    def get_files_merged(
+        self,
+        current_path: str,
+        baseline_dir: str | None = None,
+        shared_dir: str | None = None,
+    ) -> dict:
+        """Get files from user workspace + baseline overlay + team shared."""
+        result = self.get_files(current_path)
+
+        # At workspace root, inject baseline and shared directory entries
+        if not current_path and baseline_dir:
+            baseline_path = Path(baseline_dir)
+            if baseline_path.is_dir():
+                for entry in sorted(baseline_path.iterdir()):
+                    if entry.name.startswith("."):
+                        continue
+                    result["entries"].insert(
+                        0,
+                        {
+                            "name": entry.name,
+                            "path": f"$BASELINE/{entry.name}",
+                            "type": "folder"
+                            if entry.is_dir()
+                            else self._get_file_type(entry.name),
+                            "size": entry.stat().st_size if entry.is_file() else 0,
+                            "is_dir": entry.is_dir(),
+                            "is_baseline": True,
+                            "readonly": True,
+                        },
+                    )
+
+        if not current_path and shared_dir:
+            shared_path = Path(shared_dir)
+            if shared_path.is_dir():
+                result["entries"].insert(
+                    0,
+                    {
+                        "name": "shared",
+                        "path": "$SHARED/",
+                        "type": "folder",
+                        "size": 0,
+                        "is_dir": True,
+                        "is_shared": True,
+                        "readonly": False,
+                    },
+                )
+
+        return result
 
     def get_full_path(self, file_path: str, allow_dir: bool = False) -> str:
         """Get full file path if it exists and is within base_dir"""

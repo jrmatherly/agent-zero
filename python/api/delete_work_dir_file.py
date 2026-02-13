@@ -2,6 +2,12 @@ from python.api import get_work_dir_files
 from python.helpers import runtime
 from python.helpers.api import ApiHandler, Input, Output, Request
 from python.helpers.file_browser import FileBrowser
+from python.helpers.workspace import (
+    get_baseline_root,
+    get_team_shared_root,
+    get_workspace_root,
+    resolve_virtual_path,
+)
 
 
 class DeleteWorkDirFile(ApiHandler):
@@ -11,20 +17,32 @@ class DeleteWorkDirFile(ApiHandler):
 
     async def process(self, input: Input, request: Request) -> Output:
         try:
-            file_path = input.get("path", "")
-            if not file_path.startswith("/"):
-                file_path = f"/{file_path}"
+            tenant_ctx = self._get_tenant_ctx()
+            workspace = get_workspace_root(tenant_ctx)
+            baseline_dir = get_baseline_root()
+            shared_dir = get_team_shared_root(tenant_ctx)
 
+            file_path = input.get("path", "")
             current_path = input.get("currentPath", "")
 
-            # browser = FileBrowser()
-            res = await runtime.call_development_function(delete_file, file_path)
+            if file_path.startswith("$BASELINE") or current_path.startswith(
+                "$BASELINE"
+            ):
+                return {"error": "Baseline files are read-only"}
+
+            resolved_dir, resolved_path, _readonly = resolve_virtual_path(
+                file_path, workspace, baseline_dir, shared_dir
+            )
+            if not resolved_path.startswith("/"):
+                resolved_path = f"/{resolved_path}"
+
+            res = await runtime.call_development_function(
+                delete_file, resolved_path, resolved_dir
+            )
 
             if res:
-                # Get updated file list
-                # result = browser.get_files(current_path)
                 result = await runtime.call_development_function(
-                    get_work_dir_files.get_files, current_path
+                    get_work_dir_files.get_files, current_path, workspace
                 )
                 return {"data": result}
             else:
@@ -33,6 +51,6 @@ class DeleteWorkDirFile(ApiHandler):
             return {"error": str(e)}
 
 
-async def delete_file(file_path: str):
-    browser = FileBrowser()
+async def delete_file(file_path: str, base_dir: str):
+    browser = FileBrowser(base_dir=base_dir)
     return browser.delete_file(file_path)

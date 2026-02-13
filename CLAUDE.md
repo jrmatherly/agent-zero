@@ -38,7 +38,7 @@ mise run docker:push:app            # Build + push app image to GHCR
 mise run docker:run                 # Run local container (port 50080→80)
 ```
 
-Single test: `uv run pytest tests/test_websocket_manager.py -v`
+Single test: `mise run t -- tests/test_websocket_manager.py -v`
 
 Tests use `pytest-asyncio` with `asyncio_mode = "auto"` — async test functions are auto-detected.
 
@@ -80,8 +80,10 @@ Tests use `pytest-asyncio` with `asyncio_mode = "auto"` — async test functions
 
 ## CI/CD
 
-Seven GitHub Actions workflows in `.github/workflows/`:
+Nine GitHub Actions workflows in `.github/workflows/`:
 - **ci.yml**: Lint + format check + test (parallel jobs) on push/PR to main; paths-ignore skips docs-only changes; concurrency groups cancel stale runs; uv cache on test job
+- **claude.yml**: Claude Code agent for issue/PR comment responses and assigned issues
+- **claude-code-review.yml**: Claude Code automated PR review on open/sync/ready
 - **drift.yml**: DriftDetect codebase analysis on source changes, manual dispatch, weekly
 - **release.yml**: git-cliff changelog + GitHub release on `v*` tag push; builds & pushes Docker app image (amd64) to GHCR
 - **docker-base.yml**: Builds & pushes Docker base image to GHCR on `docker/base/**` changes or manual dispatch

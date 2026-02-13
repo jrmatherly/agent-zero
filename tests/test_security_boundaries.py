@@ -232,10 +232,10 @@ class TestFileBrowserExtensionValidation:
     """FileBrowser._is_allowed_file must also validate extensions."""
 
     @pytest.fixture()
-    def browser(self):
+    def browser(self, tmp_path):
         from python.helpers.file_browser import FileBrowser
 
-        return FileBrowser()
+        return FileBrowser(base_dir=str(tmp_path))
 
     @pytest.mark.parametrize(
         "filename",

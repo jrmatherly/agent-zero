@@ -9,6 +9,7 @@ from flask import Response
 from python.api import file_info
 from python.helpers import files, runtime
 from python.helpers.api import ApiHandler, Input, Output, Request
+from python.helpers.workspace import get_workspace_root
 
 
 def stream_file_download(file_source, download_name, chunk_size=8192):
@@ -97,6 +98,9 @@ class DownloadFile(ApiHandler):
         return ("workdir", "read")
 
     async def process(self, input: Input, request: Request) -> Output:
+        tenant_ctx = self._get_tenant_ctx()
+        workspace = get_workspace_root(tenant_ctx)
+
         file_path = request.args.get("path", input.get("path", ""))
         if not file_path:
             raise ValueError("No file path provided")
@@ -104,7 +108,7 @@ class DownloadFile(ApiHandler):
             file_path = f"/{file_path}"
 
         file = await runtime.call_development_function(
-            file_info.get_file_info, file_path
+            file_info.get_file_info, file_path, workspace
         )
 
         if not file["exists"]:

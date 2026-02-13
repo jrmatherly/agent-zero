@@ -1,6 +1,7 @@
 from typing import Optional, Tuple
 
 from python.helpers import runtime, tty_session
+from python.helpers.print_style import PrintStyle
 from python.helpers.shell_ssh import clean_string
 
 
@@ -11,6 +12,8 @@ class LocalInteractiveSession:
         self.cwd = cwd
 
     async def connect(self):
+        if self.cwd:
+            PrintStyle.info(f"Local session workspace: {self.cwd}")
         self.session = tty_session.TTYSession(
             runtime.get_terminal_executable(), cwd=self.cwd
         )
