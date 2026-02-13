@@ -40,6 +40,10 @@ class FileBrowser:
 
     def save_file_b64(self, current_path: str, filename: str, base64_content: str):
         try:
+            # Validate file extension against allowlist
+            if not self._is_allowed_file(filename, None):
+                raise ValueError(f"File type not allowed: {filename}")
+
             # Resolve the target directory path
             target_file = (self.base_dir / current_path / filename).resolve()
             if not str(target_file).startswith(str(self.base_dir)):

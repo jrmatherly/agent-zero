@@ -12,6 +12,11 @@ from python.helpers.print_style import PrintStyle
 from python.helpers.projects import activate_project
 from python.helpers.security import safe_filename
 
+# Reuse the upload allowlist for attachment validation
+from python.api.upload import UploadFile
+
+_upload_checker = UploadFile()
+
 
 class ApiMessage(ApiHandler):
     # Track chat lifetimes for cleanup
@@ -70,6 +75,13 @@ class ApiMessage(ApiHandler):
                     filename = safe_filename(attachment["filename"])
                     if not filename:
                         raise ValueError("Invalid filename")
+
+                    # Validate file extension against allowlist
+                    if not _upload_checker.allowed_file(filename):
+                        PrintStyle.error(
+                            f"Rejected attachment with disallowed extension: {filename}"
+                        )
+                        continue
 
                     # Decode base64 content
                     file_content = base64.b64decode(attachment["base64"])
@@ -135,22 +147,6 @@ class ApiMessage(ApiHandler):
                         mimetype="application/json",
                     )
 
-            # Activate project if provided
-            if project_name:
-                try:
-                    projects.activate_project(context_id, project_name)
-                except Exception as e:
-                    PrintStyle.error(
-                        f"Failed to activate project '{project_name}': {str(e)}"
-                    )
-                    return Response(
-                        json.dumps(
-                            {"error": f'Failed to activate project "{project_name}"'}
-                        ),
-                        status=400,
-                        mimetype="application/json",
-                    )
-
         # Update chat lifetime
         with self._cleanup_lock:
             self._chat_lifetimes[context_id] = datetime.now() + timedelta(
@@ -194,13 +190,8 @@ class ApiMessage(ApiHandler):
 
         except Exception as e:
             PrintStyle.error(f"External API error: {e}")
-            from python.helpers import runtime
-
-            error_detail = (
-                str(e) if runtime.is_development() else "Internal server error"
-            )
             return Response(
-                json.dumps({"error": error_detail}),
+                json.dumps({"error": "Internal server error"}),
                 status=500,
                 mimetype="application/json",
             )
