@@ -17,7 +17,7 @@ jobs:
   ci-check:
     name: Verify CI Passed
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
 
@@ -26,25 +26,29 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Checking CI status for commit $GITHUB_SHA..."
-          # Wait briefly for CI to register (tag push may race with CI)
-          sleep 10
-          CONCLUSION=$(gh run list \
-            --commit "$GITHUB_SHA" \
-            --workflow ci.yml \
-            --status completed \
-            --json conclusion \
-            --jq '.[0].conclusion' \
-            2>/dev/null || echo "")
-          if [ "$CONCLUSION" = "success" ]; then
-            echo "CI passed on this commit."
-          elif [ -z "$CONCLUSION" ]; then
-            echo "::error::No completed CI run found for commit $GITHUB_SHA."
-            echo "Ensure CI has run and passed on this commit before tagging a release."
-            exit 1
-          else
-            echo "::error::CI conclusion was '$CONCLUSION' (expected 'success')."
-            exit 1
-          fi
+          MAX_ATTEMPTS=30
+          SLEEP_INTERVAL=30
+          for i in $(seq 1 "$MAX_ATTEMPTS"); do
+            CONCLUSION=$(gh run list \
+              --commit "$GITHUB_SHA" \
+              --workflow ci.yml \
+              --status completed \
+              --json conclusion \
+              --jq '.[0].conclusion' \
+              2>/dev/null || echo "")
+            if [ "$CONCLUSION" = "success" ]; then
+              echo "CI passed on this commit (attempt $i/$MAX_ATTEMPTS)."
+              exit 0
+            elif [ -n "$CONCLUSION" ]; then
+              echo "::error::CI conclusion was '$CONCLUSION' (expected 'success')."
+              exit 1
+            fi
+            echo "No completed CI run yet (attempt $i/$MAX_ATTEMPTS). Waiting ${SLEEP_INTERVAL}s..."
+            sleep "$SLEEP_INTERVAL"
+          done
+          echo "::error::CI did not complete within $((MAX_ATTEMPTS * SLEEP_INTERVAL))s for commit $GITHUB_SHA."
+          echo "Ensure CI has run and passed on this commit before tagging a release."
+          exit 1
 
   release:
     name: Create Release

@@ -145,22 +145,21 @@
             content: "";
             position: absolute;
             inset: 0;
-            background-image: url("./public/darkSymbol.svg");
+            background-image: url("./public/apollos_ai_full_watermark.svg");
             background-repeat: no-repeat;
             background-position: center;
             background-size: 80% auto;
-            opacity: 0.07;
+            opacity: 0.12;
             pointer-events: none;
         }
 
         .light-mode .welcome-container::before {
-            filter: invert(0.55);
-            opacity: 0.06;
+            filter: invert(1);
+            opacity: 0.08;
         }
 
         .dark-mode .welcome-container::before {
-            filter: invert(0.85);
-            opacity: 0.08;
+            opacity: 0.15;
         }
 
         .welcome-content {
@@ -277,8 +276,10 @@
         }
 
         .dashboard-logo {
-            width: 5rem;
-            height: 5rem;
+            width: auto;
+            height: 4rem;
+            max-width: 16rem;
+            object-fit: contain;
             opacity: 0.9;
             margin-bottom: 0.75rem;
         }
@@ -584,7 +585,7 @@
             }
 
             .dashboard-header { margin-bottom: 0.5rem; }
-            .dashboard-logo { width: 3.5rem; height: 3.5rem; }
+            .dashboard-logo { width: auto; height: 3rem; max-width: 12rem; }
             .dashboard-clock { font-size: 1.8rem; }
             .dashboard-date { font-size: 0.8rem; }
 

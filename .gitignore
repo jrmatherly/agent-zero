@@ -16,6 +16,7 @@
 # ignore test files in root dir
 /*.test.py
 .coverage
+coverage.xml
 
 # ignore ruff and pytest cache
 .ruff_cache/

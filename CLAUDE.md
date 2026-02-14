@@ -84,7 +84,7 @@ Nine GitHub Actions workflows in `.github/workflows/`:
 - **ci.yml**: Lint + format check + test (parallel jobs) on push/PR to main; paths-ignore skips docs-only changes; concurrency groups cancel stale runs; uv cache on test job
 - **claude.yml**: Claude Code agent for issue/PR comment responses and assigned issues
 - **claude-code-review.yml**: Claude Code automated PR review on open/sync/ready
-- **drift.yml**: DriftDetect codebase analysis on source changes, manual dispatch, weekly
+- **drift.yml**: DriftDetect codebase analysis (disabled — manual dispatch only)
 - **release.yml**: git-cliff changelog + GitHub release on `v*` tag push; builds & pushes Docker app image (amd64) to GHCR
 - **docker-base.yml**: Builds & pushes Docker base image to GHCR on `docker/base/**` changes or manual dispatch
 - **hooks-check.yml**: hk validation on PRs to main

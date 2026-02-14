@@ -1,15 +1,9 @@
-name: "📊 Drift Analysis"
+name: "📊 Drift Analysis (disabled)"
 
+# Disabled — automatic triggers removed to save CI minutes.
+# Re-enable push/schedule triggers when driftdetect reliability improves.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "python/**"
-      - "tests/**"
-      - "prompts/**"
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * 1"
 
 concurrency:
   group: drift-${{ github.ref }}
