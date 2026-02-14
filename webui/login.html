@@ -6,6 +6,7 @@
     <title>Login - {{ brand_name }}</title>
     <link rel="stylesheet" href="/login.css">
     <link rel="icon" type="image/svg+xml" href="/public/favicon.svg">
+    <link rel="stylesheet" href="/vendor/fonts/fonts.css">
 </head>
 <body>
     <div class="login-container">
@@ -14,18 +15,26 @@
             <h2>{{ brand_name }}</h2>
 
             {% if oidc_enabled %}
-            <a href="/login/entra" class="sso-button">Sign in with Microsoft</a>
+            <a href="/login/entra" class="sso-button">
+                <svg class="sso-icon" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                    <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                    <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                    <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                </svg>
+                Sign in with Microsoft
+            </a>
             <div class="divider"><span>or</span></div>
             {% endif %}
 
             <form method="POST" action="/login">
                 <div class="input-group">
                     <label for="username">Email</label>
-                    <input type="text" id="username" name="username" required>
+                    <input type="text" id="username" name="username" placeholder="you@company.com" required>
                 </div>
                 <div class="input-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
                 </div>
                 <button type="submit">Sign In</button>
             </form>
@@ -35,42 +44,5 @@
             {% endif %}
         </div>
     </div>
-
-    <style>
-    .sso-button {
-        display: block;
-        width: 100%;
-        padding: 12px;
-        background: #0078d4;
-        color: white;
-        text-align: center;
-        text-decoration: none;
-        border-radius: 6px;
-        font-size: 14px;
-        font-weight: 500;
-        margin-bottom: 0;
-        box-sizing: border-box;
-        transition: background 0.2s;
-    }
-    .sso-button:hover {
-        background: #106ebe;
-    }
-    .divider {
-        display: flex;
-        align-items: center;
-        margin: 16px 0;
-        color: #888;
-        font-size: 13px;
-    }
-    .divider::before,
-    .divider::after {
-        content: "";
-        flex: 1;
-        border-bottom: 1px solid #444;
-    }
-    .divider span {
-        padding: 0 12px;
-    }
-    </style>
 </body>
 </html>

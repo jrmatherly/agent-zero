@@ -52,6 +52,14 @@ webui/
 │   ├── projects/            ← Project CRUD
 │   ├── sync/                ← WebSocket connection status
 │   └── tooltips/            ← Tooltip system
+├── vendor/
+│   └── fonts/
+│       ├── fonts.css              ← @font-face declarations (LOCAL, no CDN)
+│       ├── inter-latin.woff2
+│       ├── playfair-display-latin.woff2
+│       ├── playfair-display-italic-latin.woff2
+│       ├── work-sans-latin.woff2
+│       └── jetbrains-mono-latin.woff2
 └── public/
     ├── splash.svg           ← Brand logo (renders natively in dark mode)
     └── darkSymbol.svg       ← Background watermark
@@ -171,6 +179,27 @@ Components are self-contained `.html` files with embedded `<script type="module"
 </body>
 </html>
 ```
+
+## Typography & Fonts
+
+All fonts are **vendored locally** for offline/Docker support. Never use Google Fonts CDN links.
+
+**Font files**: `webui/vendor/fonts/` (`.woff2` variable fonts)
+**Declarations**: `webui/vendor/fonts/fonts.css` (`@font-face` rules with `font-display: swap`)
+
+| Font | CSS Variable | Usage | Weight Range |
+|------|-------------|-------|-------------|
+| Inter | `--font-family-main` | Body text, UI | 300–700 |
+| Playfair Display | `--font-family-serif` | Headings, brand name, clock | 400–700 (+ italic) |
+| Work Sans | `--font-family-display` | Display text, labels, buttons | 300–600 |
+| JetBrains Mono | `--font-family-code` | Code blocks | 400–500 |
+
+**Loading fonts in standalone pages** (e.g., `login.html` which is outside the SPA):
+```html
+<link rel="stylesheet" href="/vendor/fonts/fonts.css">
+```
+
+The main SPA (`index.html`) loads fonts via `index.css` which imports `tokens.css`. Standalone pages must load `fonts.css` explicitly since they don't use the SPA stylesheet chain.
 
 ## Responsive Breakpoints
 
