@@ -9,7 +9,7 @@ apt clean && apt-get update && apt-get -y upgrade
 
 # install python 3.13 globally
 apt-get install -y --no-install-recommends \
-    python3.13 python3.13-venv 
+    python3.13 python3.13-venv
     #python3.13-dev
 
 
@@ -59,8 +59,8 @@ pip install --no-cache-dir --upgrade pip
 
 # Install some packages in specific variants
 pip install --no-cache-dir \
-    torch==2.4.0 \
-    torchvision==0.19.0 \
+    torch==2.10.0 \
+    torchvision==0.25.0 \
     --index-url https://download.pytorch.org/whl/cpu
 
 echo "====================PYTHON UV ===================="

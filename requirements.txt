@@ -167,10 +167,6 @@ cryptography==46.0.5
     #   unstructured-client
 csvw==3.7.0
     # via segments
-cuda-bindings==12.9.4 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-cuda-pathfinder==1.3.3 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via cuda-bindings
 curated-tokenizers==0.0.9
     # via spacy-curated-transformers
 curated-transformers==0.1.1
@@ -576,45 +572,6 @@ numpy==1.26.4
     #   transformers
     #   unstructured
     #   unstructured-inference
-nvidia-cublas-cu12==12.8.4.1 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cudnn-cu12
-    #   nvidia-cusolver-cu12
-    #   torch
-nvidia-cuda-cupti-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cuda-nvrtc-cu12==12.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cuda-runtime-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cudnn-cu12==9.10.2.21 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cufft-cu12==11.3.3.83 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cufile-cu12==1.13.1.3 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-curand-cu12==10.3.9.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cusolver-cu12==11.7.3.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-cusparse-cu12==12.5.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cusolver-cu12
-    #   torch
-nvidia-cusparselt-cu12==0.7.1 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nccl-cu12==2.27.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nvjitlink-cu12==12.8.93 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via
-    #   nvidia-cufft-cu12
-    #   nvidia-cusolver-cu12
-    #   nvidia-cusparse-cu12
-    #   torch
-nvidia-nvshmem-cu12==3.4.5 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
-nvidia-nvtx-cu12==12.8.90 ; platform_machine == 'x86_64' and sys_platform == 'linux'
-    # via torch
 oauthlib==3.3.1
     # via
     #   exchangelib
@@ -1798,9 +1755,10 @@ tokenizers==0.22.2
     # via
     #   litellm
     #   transformers
-torch==2.10.0
+torch==2.10.0 ; sys_platform == 'darwin'
     # via
     #   accelerate
+    #   apollos-ai
     #   curated-transformers
     #   effdet
     #   kokoro
@@ -1810,8 +1768,27 @@ torch==2.10.0
     #   timm
     #   torchvision
     #   unstructured-inference
-torchvision==0.25.0
+torch==2.10.0+cpu ; sys_platform != 'darwin'
     # via
+    #   accelerate
+    #   apollos-ai
+    #   curated-transformers
+    #   effdet
+    #   kokoro
+    #   openai-whisper
+    #   sentence-transformers
+    #   spacy-curated-transformers
+    #   timm
+    #   torchvision
+    #   unstructured-inference
+torchvision==0.25.0 ; sys_platform == 'darwin'
+    # via
+    #   apollos-ai
+    #   effdet
+    #   timm
+torchvision==0.25.0+cpu ; sys_platform != 'darwin'
+    # via
+    #   apollos-ai
     #   effdet
     #   timm
 tqdm==4.67.3
@@ -1831,9 +1808,7 @@ transformers==4.57.6
     #   sentence-transformers
     #   unstructured-inference
 triton==3.6.0 ; (platform_machine == 'x86_64' and sys_platform == 'linux') or sys_platform == 'linux2'
-    # via
-    #   openai-whisper
-    #   torch
+    # via openai-whisper
 typer-slim==0.21.2
     # via
     #   spacy

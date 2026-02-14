@@ -21,7 +21,9 @@ RUN bash /ins/pre_install.sh $BRANCH
 # Install Python packages (cached unless requirements change)
 RUN . /ins/setup_venv.sh && \
     uv pip install -r /git/apollos-ai/requirements.txt \
-    --overrides /git/apollos-ai/overrides.txt && \
+    --overrides /git/apollos-ai/overrides.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    --index-strategy unsafe-best-match && \
     bash /ins/install_playwright.sh $BRANCH
 
 # --- Source code (changes here don't re-download packages) ---

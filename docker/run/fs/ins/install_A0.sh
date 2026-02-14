@@ -38,7 +38,9 @@ fi
 # --override resolves the browser-use==0.5.11 -> openai==1.99.2 conflict,
 # matching the [tool.uv] override-dependencies in pyproject.toml.
 uv pip install -r /git/apollos-ai/requirements.txt \
-    --overrides /git/apollos-ai/overrides.txt
+    --overrides /git/apollos-ai/overrides.txt \
+    --extra-index-url https://download.pytorch.org/whl/cpu \
+    --index-strategy unsafe-best-match
 
 # install playwright
 bash /ins/install_playwright.sh "$@"
