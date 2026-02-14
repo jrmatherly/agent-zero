@@ -28,7 +28,7 @@ def parse_catalog_entries(entries: list[dict[str, Any]]) -> list[dict[str, Any]]
     for entry in entries:
         name = entry.get("name")
         if not name:
-            logger.debug("Skipping catalog entry without name: %s", entry)
+            logger.debug("Skipping catalog entry without name")
             continue
 
         parsed: dict[str, Any] = {
