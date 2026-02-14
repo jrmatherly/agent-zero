@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.2] - 2026-02-14
+
+
+### Documentation
+
+- Add MCP Gateway section to CLAUDE.md
+- Restructure and update documentation, including quickstart, contribution guide, and new knowledge base articles.
+- Update project overview with FastMCP 3.0, increased mise tasks, and expanded CI/CD workflows.
+- Update project overview with new test and documentation file counts, and detail branding environment variables.
+
+
+### Features
+
+- *(mcp)* Add connection pool for persistent MCP sessions
+- *(mcp)* Add resource store abstraction with in-memory backend and permission model
+- *(mcp)* Add identity header utilities for gateway proxy pattern
+- *(mcp)* Add Docker container lifecycle manager for MCP servers
+- Establish new user data directories and overhaul documentation and knowledge base content.
+- Implement MCP Gateway with new admin APIs, security features, and updated FastMCP dependency to rc2
+
+
+### Styling
+
+- Fix unused variable lint warning in connection pool test
+
+
+### Testing
+
+- *(mcp)* Add gateway API integration tests
+
+
 ## [v0.4.1] - 2026-02-14
 
 
