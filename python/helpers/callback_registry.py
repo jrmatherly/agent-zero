@@ -68,3 +68,15 @@ class CallbackRegistry:
             return [
                 r for r in self._store.values() if r.status == CallbackStatus.PENDING
             ]
+
+    def list_awaiting_approval(self) -> list[CallbackRegistration]:
+        with self._store_lock:
+            return [
+                r
+                for r in self._store.values()
+                if r.status == CallbackStatus.AWAITING_APPROVAL
+            ]
+
+    def list_all(self) -> list[CallbackRegistration]:
+        with self._store_lock:
+            return list(self._store.values())

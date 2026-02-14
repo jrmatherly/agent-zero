@@ -54,6 +54,7 @@ class CallbackStatus(StrEnum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     ERROR = "error"
+    AWAITING_APPROVAL = "awaiting_approval"
 
 
 class CallbackRegistration(BaseModel):
