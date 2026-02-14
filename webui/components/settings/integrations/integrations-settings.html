@@ -1,0 +1,129 @@
+<html>
+<head>
+  <title>Integrations</title>
+</head>
+
+<body>
+<div x-data>
+  <template x-if="$store.settings">
+    <div>
+      <h3 class="section-title">Platform Integrations</h3>
+      <p class="section-description">Configure webhook integrations for Slack, GitHub, and Jira.</p>
+
+      <!-- Master toggle -->
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Enable Integrations</span>
+          <small class="setting-hint">Master toggle for all platform integrations</small>
+        </label>
+        <label class="toggle">
+          <input type="checkbox"
+                 x-model="$store.settings.settings.integrations_enabled" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <!-- Slack Section -->
+      <h4 class="subsection-title">Slack</h4>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Signing Secret</span>
+          <small class="setting-hint">From Slack App > Basic Information > Signing Secret</small>
+        </label>
+        <input type="password"
+               class="setting-input"
+               x-model="$store.settings.settings.slack_signing_secret"
+               placeholder="Enter Slack signing secret" />
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Bot Token</span>
+          <small class="setting-hint">xoxb-* token from Slack App > OAuth & Permissions</small>
+        </label>
+        <input type="password"
+               class="setting-input"
+               x-model="$store.settings.settings.slack_bot_token"
+               placeholder="xoxb-..." />
+      </div>
+
+      <!-- GitHub Section -->
+      <h4 class="subsection-title">GitHub</h4>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Webhook Secret</span>
+          <small class="setting-hint">From GitHub App > Webhook > Secret</small>
+        </label>
+        <input type="password"
+               class="setting-input"
+               x-model="$store.settings.settings.github_webhook_secret"
+               placeholder="Enter GitHub webhook secret" />
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>App ID</span>
+          <small class="setting-hint">From GitHub App > General > App ID</small>
+        </label>
+        <input type="text"
+               class="setting-input"
+               x-model="$store.settings.settings.github_app_id"
+               placeholder="123456" />
+      </div>
+
+      <!-- Jira Section -->
+      <h4 class="subsection-title">Jira</h4>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Webhook Secret</span>
+          <small class="setting-hint">Shared secret configured in Jira webhook URL</small>
+        </label>
+        <input type="password"
+               class="setting-input"
+               x-model="$store.settings.settings.jira_webhook_secret"
+               placeholder="Enter Jira webhook secret" />
+      </div>
+
+      <div class="setting-row">
+        <label class="setting-label">
+          <span>Site URL</span>
+          <small class="setting-hint">Your Jira Cloud instance URL</small>
+        </label>
+        <input type="text"
+               class="setting-input"
+               x-model="$store.settings.settings.jira_site_url"
+               placeholder="https://yourorg.atlassian.net" />
+      </div>
+    </div>
+  </template>
+</div>
+</body>
+</html>
+
+<style>
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--color-text-primary, #fff);
+}
+
+.section-description {
+  color: var(--color-text-secondary, #999);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+}
+
+.subsection-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--color-border, #333);
+  color: var(--color-text-primary, #fff);
+}
+</style>

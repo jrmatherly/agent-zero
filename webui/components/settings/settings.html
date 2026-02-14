@@ -42,13 +42,17 @@
                  :class="{'active': $store.settings.activeTab === 'external'}"
                  @click="$store.settings.switchTab('external')"
                  title="External Services">External Services</div>
-            <div class="settings-tab" 
+            <div class="settings-tab"
+                 :class="{'active': $store.settings.activeTab === 'integrations'}"
+                 @click="$store.settings.switchTab('integrations')"
+                 title="Integrations">Integrations</div>
+            <div class="settings-tab"
                  :class="{'active': $store.settings.activeTab === 'mcp'}"
-                 @click="$store.settings.switchTab('mcp')" 
+                 @click="$store.settings.switchTab('mcp')"
                  title="MCP">MCP/A2A</div>
-            <div class="settings-tab" 
+            <div class="settings-tab"
                  :class="{'active': $store.settings.activeTab === 'developer'}"
-                 @click="$store.settings.switchTab('developer')" 
+                 @click="$store.settings.switchTab('developer')"
                  title="Developer">Developer</div>
             <div class="settings-tab"
                  :class="{'active': $store.settings.activeTab === 'backup'}"
@@ -64,6 +68,9 @@
           </div>
           <div x-show="$store.settings.activeTab === 'external'">
             <x-component path="settings/external/external-settings.html"></x-component>
+          </div>
+          <div x-show="$store.settings.activeTab === 'integrations'">
+            <x-component path="settings/integrations/integrations-settings.html"></x-component>
           </div>
           <div x-show="$store.settings.activeTab === 'mcp'">
             <x-component path="settings/mcp/mcp-settings.html"></x-component>
@@ -82,12 +89,12 @@
 
       <!-- Footer -->
       <div class="modal-footer" data-modal-footer x-show="$store.settings.settings">
-        <button class="btn btn-ok" 
+        <button class="btn btn-ok"
             @click="$store.settings.saveAndClose()"
             :disabled="$store.settings?.isLoading">
         Save
         </button>
-        <button class="btn btn-cancel" 
+        <button class="btn btn-cancel"
                 @click="$store.settings.closeSettings()">
           Cancel
         </button>
