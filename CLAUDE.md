@@ -126,6 +126,32 @@ Four-phase auth system:
 - **Legacy compat**: `AUTH_LOGIN`/`AUTH_PASSWORD` still works as single-user fallback
 - **Migrations**: `uv run alembic upgrade head` (run automatically by bootstrap)
 
+## Platform Integrations
+
+Inbound webhook receivers for Slack, GitHub, and Jira. Events are processed by the agent and responses are delivered back to the originating platform. See `docs/integrations/` for per-platform setup guides.
+
+**Webhook Handlers** (auto-discovered in `python/api/`):
+- `webhook_slack.py` — Slack Events API (app_mention, DM); signing secret + timestamp replay protection
+- `webhook_slack_oauth.py` — Slack OAuth identity linking
+- `webhook_github.py` — GitHub App webhooks (issues, PRs, comments); HMAC-SHA256 verification
+- `webhook_jira.py` — Jira Cloud webhooks (issue created/updated, comments); shared secret via query param
+
+**Core Infrastructure** (`python/helpers/`):
+- `integration_models.py` — Pydantic models: `SourceType`, `IntegrationMessage`, `WebhookContext`, `CallbackRegistration`, `CallbackStatus`
+- `webhook_verify.py` — Platform-specific signature verification
+- `callback_registry.py` — Thread-safe singleton callback store
+- `callback_retry.py` — Exponential backoff retry for failed deliveries
+- `webhook_event_log.py` — Bounded in-memory audit log
+- `jira_markup.py` — Markdown-to-Jira wiki markup converter
+
+**Extension**: `python/extensions/monologue_end/_80_integration_callback.py` — routes agent responses to Slack/GitHub/Jira
+
+**API Endpoints**: `callback_admin.py` (list/retry failed callbacks), `webhook_events_get.py` (event log query), `integration_settings_get.py` (masked settings read)
+
+**Settings UI**: `webui/components/settings/integrations/integrations-settings.html` — Integrations tab in Settings
+
+**Settings** (via `A0_SET_*` env vars or UI): `integrations_enabled`, `slack_signing_secret`, `slack_bot_token`, `github_webhook_secret`, `github_app_id`, `jira_webhook_secret`, `jira_site_url`
+
 ## MCP Gateway
 
 Built-in MCP gateway with multi-server composition, discovery, lifecycle management, and access control:

@@ -222,6 +222,32 @@ class VectorDocument(Base):
     organization = relationship("Organization")
 
 
+class ExternalIdentity(Base):
+    """Maps an external platform user to an internal user account.
+
+    Supports Slack, GitHub, Jira, and other integrations.
+    OAuth tokens are stored in the vault for encrypted credential management.
+    """
+
+    __tablename__ = "external_identities"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    platform = Column(String, nullable=False)
+    external_user_id = Column(String, nullable=False)
+    external_display_name = Column(String)
+    external_team_id = Column(String)
+    access_token_vault_id = Column(String, ForeignKey("api_key_vault.id"))
+    refresh_token_vault_id = Column(String, ForeignKey("api_key_vault.id"))
+    token_expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_used_at = Column(DateTime)
+
+    __table_args__ = (UniqueConstraint("platform", "external_user_id"),)
+
+    user = relationship("User")
+
+
 # ---------------------------------------------------------------------------
 # Password utilities (argon2)
 # ---------------------------------------------------------------------------
@@ -787,3 +813,61 @@ def delete_connection(db: Session, user_id: str, service_id: str) -> None:
             if vault_id:
                 db.query(ApiKeyVault).filter(ApiKeyVault.id == vault_id).delete()
         db.query(McpConnection).filter(McpConnection.id == conn.id).delete()
+
+
+# ---------------------------------------------------------------------------
+# External identity linking
+# ---------------------------------------------------------------------------
+
+
+def link_external_identity(
+    db: Session,
+    user_id: str,
+    platform: str,
+    external_user_id: str,
+    external_display_name: str | None = None,
+    external_team_id: str | None = None,
+) -> ExternalIdentity:
+    """Link an external platform user to an internal user account."""
+    existing = (
+        db.query(ExternalIdentity)
+        .filter(
+            ExternalIdentity.platform == platform,
+            ExternalIdentity.external_user_id == external_user_id,
+        )
+        .first()
+    )
+    if existing:
+        existing.user_id = user_id
+        existing.external_display_name = external_display_name
+        existing.last_used_at = datetime.now(timezone.utc)
+        return existing
+
+    identity = ExternalIdentity(
+        user_id=user_id,
+        platform=platform,
+        external_user_id=external_user_id,
+        external_display_name=external_display_name,
+        external_team_id=external_team_id,
+    )
+    db.add(identity)
+    return identity
+
+
+def get_identity_by_external_id(
+    db: Session, platform: str, external_user_id: str
+) -> ExternalIdentity | None:
+    """Look up an internal user by their external platform identity."""
+    return (
+        db.query(ExternalIdentity)
+        .filter(
+            ExternalIdentity.platform == platform,
+            ExternalIdentity.external_user_id == external_user_id,
+        )
+        .first()
+    )
+
+
+def list_identities_for_user(db: Session, user_id: str) -> list[ExternalIdentity]:
+    """List all external identities linked to a user."""
+    return db.query(ExternalIdentity).filter(ExternalIdentity.user_id == user_id).all()

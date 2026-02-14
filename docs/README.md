@@ -26,7 +26,13 @@ Welcome to the Apollos AI documentation hub. Whether you're getting started or d
 
 - **[Environment Variables](reference/environment-variables.md):** Complete catalog of all environment variables, API keys, and settings overrides.
 - **[Dependency Management](setup/dependency-management.md):** Adding/removing packages, upstream merge strategy, and Docker compatibility.
-- **[Performance & Scalability Analysis](analysis/performance-scalability-analysis.md):** Detailed analysis of performance characteristics and scalability patterns.
+
+## Platform Integrations
+
+- **[Integrations Overview](integrations/README.md):** Architecture and setup overview for platform integrations.
+- **[Slack Bot Setup](integrations/slack-bot-setup.md):** Configure a Slack App for webhook events.
+- **[GitHub App Setup](integrations/github-app-setup.md):** Configure a GitHub App for issue and PR webhooks.
+- **[Jira Webhook Setup](integrations/jira-webhook-setup.md):** Configure Jira Cloud webhooks.
 
 ## Developer Documentation
 
@@ -103,7 +109,13 @@ Welcome to the Apollos AI documentation hub. Whether you're getting started or d
 
 - [Reference](#reference)
   - [Environment Variables](reference/environment-variables.md)
-  - [Performance & Scalability Analysis](analysis/performance-scalability-analysis.md)
+  - [Dependency Management](setup/dependency-management.md)
+
+- [Platform Integrations](#platform-integrations)
+  - [Integrations Overview](integrations/README.md)
+  - [Slack Bot Setup](integrations/slack-bot-setup.md)
+  - [GitHub App Setup](integrations/github-app-setup.md)
+  - [Jira Webhook Setup](integrations/jira-webhook-setup.md)
 
 - [Developer Documentation](#developer-documentation)
   - [Architecture Overview](developer/architecture.md)

@@ -417,6 +417,22 @@ Any UI setting can be overridden via environment variable using the prefix `A0_S
 | `A0_SET_STT_WAITING_TIMEOUT` | Waiting timeout before stop (ms) | `2000` |
 | `A0_SET_TTS_KOKORO` | Use Kokoro TTS engine | `true` |
 
+### Platform Integrations
+
+Enable inbound webhook processing from external platforms (Slack, GitHub, Jira). The agent receives events via platform-specific webhook endpoints, processes them, and delivers responses back through the callback system.
+
+Configure these settings via the UI (**Settings > Integrations**) or environment variables. See `docs/integrations/` for per-platform setup guides.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `A0_SET_INTEGRATIONS_ENABLED` | Master toggle for inbound webhook processing | `false` |
+| `A0_SET_SLACK_SIGNING_SECRET` | Slack App signing secret for webhook verification | *(empty)* |
+| `A0_SET_SLACK_BOT_TOKEN` | Slack Bot User OAuth Token (`xoxb-...`) for posting responses | *(empty)* |
+| `A0_SET_GITHUB_WEBHOOK_SECRET` | GitHub App webhook secret for HMAC-SHA256 signature verification | *(empty)* |
+| `A0_SET_GITHUB_APP_ID` | GitHub App ID (shown on the App settings page) | *(empty)* |
+| `A0_SET_JIRA_WEBHOOK_SECRET` | Shared secret for Jira webhook authentication (passed as `?secret=` query parameter) | *(empty)* |
+| `A0_SET_JIRA_SITE_URL` | Jira Cloud site URL (e.g., `https://your-org.atlassian.net`) for API callbacks | *(empty)* |
+
 ### MCP & A2A Servers
 
 | Variable | Description | Default |
