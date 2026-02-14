@@ -373,13 +373,43 @@ Extensions can be found in `python/extensions` directory:
 5. Test thoroughly before deployment
 
 ### MCP Gateway
-Apollos AI includes a built-in MCP (Model Context Protocol) gateway for routing, lifecycle management, and access control of MCP servers:
+Apollos AI includes a built-in MCP (Model Context Protocol) gateway for multi-server composition, discovery, lifecycle management, and access control.
+
+#### Infrastructure (Phase 1)
 
 - **Connection Pool** (`python/helpers/mcp_connection_pool.py`): Persistent MCP sessions with async-safe connection management and health checking
 - **Resource Store** (`python/helpers/mcp_resource_store.py`): Pluggable backend (InMemory for development, extensible to Redis/Postgres) with resource-level RBAC (creator + admin + required_roles)
 - **Identity Headers** (`python/helpers/mcp_identity.py`): Automatic `X-Mcp-UserId`/`UserName`/`Roles` header injection with auth header stripping for downstream servers
 - **Container Manager** (`python/helpers/mcp_container_manager.py`): Docker lifecycle management for MCP server containers (create, start, stop, health check)
 - **Dynamic Proxy** (`DynamicMcpProxy` in `python/helpers/mcp_server.py`): ASGI reverse proxy at `/mcp` that routes SSE/HTTP/OAuth to the appropriate MCP server
+
+#### Composition & Runtime (Phase 2)
+
+- **Compositor** (`python/helpers/mcp_gateway_compositor.py`): FastMCP 3.0 multi-server mounting with `create_proxy()`, wired into DynamicMcpProxy
+- **Health Checker** (`python/helpers/mcp_gateway_health.py`): Pool health checks and Docker container status monitoring
+- **Lifecycle Hooks** (`python/helpers/mcp_gateway_lifecycle.py`): Server create/delete side effects — mount/unmount, Docker start/stop, pool eviction
+- **Registry Client** (`python/helpers/mcp_registry_client.py`): Async httpx client for the MCP Registry API (`registry.modelcontextprotocol.io`)
+- **Docker Catalog** (`python/helpers/docker_mcp_catalog.py`): YAML parser for `docker mcp catalog show` output
+- **Tool Index** (`python/helpers/mcp_tool_index.py`): Keyword-searchable index of tools across all mounted MCP servers
+
+#### API Endpoints
+
+- `python/api/mcp_gateway_servers.py` — CRUD for gateway servers (list/create/update/delete/status) with RBAC
+- `python/api/mcp_gateway_pool.py` — Connection pool status and health check
+- `python/api/mcp_gateway_discover.py` — MCP Registry search proxy and server install
+- `python/api/mcp_gateway_catalog.py` — Docker MCP Catalog browse and install
+
+#### Agent Tool
+
+The `mcp_discover` tool (`python/tools/mcp_discover.py`) enables agents to search the MCP Registry, list available tools across mounted servers, and search tools by keyword.
+
+#### WebUI
+
+The gateway management UI (`webui/components/settings/mcp/gateway/`) provides three tabs: Servers (manage registered servers), Discover (search and install from MCP Registry), and Docker Catalog (browse and install from Docker's MCP catalog).
+
+#### Coexistence Model
+
+MCPConfig (agent-side, settings-driven) and McpResourceStore (gateway-side, RBAC-driven) are independent systems. MCPConfig manages servers the agent connects to as a client; McpResourceStore manages servers the gateway exposes to external clients.
 
 The MCP Gateway integrates with the authentication system's RBAC layer to enforce per-server access control.
 

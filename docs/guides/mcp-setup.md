@@ -103,6 +103,34 @@ Simply ask Apollos AI to perform tasks, and it will use the appropriate MCP tool
 
 For detailed configuration options, server types, environment variables, and troubleshooting, see the [Advanced MCP Configuration Guide](../developer/mcp-configuration.md).
 
+## MCP Gateway Management
+
+In addition to connecting to external MCP servers as a client, Apollos AI includes a built-in **MCP Gateway** that composes multiple MCP servers into a unified endpoint with access control and lifecycle management.
+
+### Accessing the Gateway
+
+1. Click **Settings** in the sidebar
+2. Navigate to the **MCP/A2A** tab
+3. Click on the **Gateway** section
+
+The Gateway UI has three tabs:
+
+### Servers Tab
+
+Manage MCP servers registered with the gateway. You can add, edit, delete, and check the status of servers. Each server can have RBAC-based access control (creator, admin, and role-based permissions).
+
+### Discover Tab
+
+Search the [MCP Registry](https://registry.modelcontextprotocol.io) for available MCP servers. Browse results and install servers directly into the gateway with one click.
+
+### Docker Catalog Tab
+
+Browse Docker's MCP server catalog. View available containerized MCP servers and install them into the gateway, which handles Docker container lifecycle (start, stop, health check) automatically.
+
+### Agent Discovery
+
+Agents can autonomously discover and search MCP servers using the built-in `mcp_discover` tool. This tool allows agents to search the MCP Registry and find tools across all mounted gateway servers by keyword.
+
 ## Recommended MCP Servers
 
 Community-tested and reliable MCP servers:

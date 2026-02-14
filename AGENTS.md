@@ -38,6 +38,7 @@ Do NOT invoke `uv run`, `pytest`, `ruff`, or `docker compose` directly. Always u
 - Auto-discovery: Drop files in `python/tools/`, `python/api/`, or `python/websocket_handlers/` and they activate automatically
 - Extensions: `python/extensions/<hook_name>/` with filename-prefix sorting (`_10_`, `_20_`)
 - Settings: `python/helpers/settings.py` TypedDict with `A0_SET_` env var overrides
+- MCP Gateway: `python/helpers/mcp_gateway_*.py` — multi-server composition, discovery, and lifecycle management; APIs in `python/api/mcp_gateway_*.py`; agent tool `mcp_discover`
 
 ## Key Patterns
 
