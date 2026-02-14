@@ -26,6 +26,7 @@ from starlette.types import ASGIApp, Receive, Scope, Send
 from agent import AgentContext, AgentContextType, UserMessage
 from initialize import initialize_agent
 from python.helpers import branding, projects, settings
+from python.helpers.mcp_gateway_compositor import McpGatewayCompositor
 from python.helpers.persist_chat import remove_chat
 from python.helpers.print_style import PrintStyle
 
@@ -514,6 +515,7 @@ class DynamicMcpProxy:
         self.http_session_manager = None
         self.http_session_task_group = None
         self._lock = threading.RLock()  # Use RLock to avoid deadlocks
+        self.compositor = McpGatewayCompositor(mcp_server)
         self.reconfigure(cfg["mcp_server_token"])
 
     @staticmethod
@@ -555,6 +557,36 @@ class DynamicMcpProxy:
                 http_path,
                 middleware=list(middleware),
             )
+
+    async def refresh_mounts(self) -> None:
+        """Re-read the resource store and update gateway mounts.
+
+        Unmounts servers no longer in the store and mounts new ones.
+        Safe to call repeatedly — idempotent.
+        """
+        from python.api.mcp_gateway_servers import get_store
+
+        store = get_store()
+        resources = store.list_all()
+        resource_names = {r.name for r in resources if r.is_enabled}
+
+        # Unmount servers that are no longer in the store
+        for name in list(self.compositor.mounted_names):
+            if name not in resource_names:
+                await self.compositor.unmount_server(name)
+
+        # Mount servers that are new
+        for resource in resources:
+            if (
+                resource.is_enabled
+                and resource.name not in self.compositor.mounted_names
+            ):
+                try:
+                    await self.compositor.mount_server(resource)
+                except Exception as e:
+                    _PRINTER.print(
+                        f"[MCP] Failed to mount gateway server '{resource.name}': {e}"
+                    )
 
     def _create_custom_http_app(
         self,

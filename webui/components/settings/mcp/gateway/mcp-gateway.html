@@ -1,0 +1,379 @@
+<html>
+<head>
+  <title>MCP Gateway</title>
+</head>
+
+<body>
+<script type="module">
+  import { store as gatewayStore } from "/components/settings/mcp/gateway/mcp-gateway-store.js";
+</script>
+
+<div x-data x-init="$store.mcpGateway.init()">
+
+  <!-- Error Banner -->
+  <div x-show="$store.mcpGateway.error" class="settings-error" style="margin-bottom: 1rem;">
+    <span class="material-symbols-outlined">error</span>
+    <span x-text="$store.mcpGateway.error"></span>
+    <button class="btn btn-sm" @click="$store.mcpGateway.error = null">Dismiss</button>
+  </div>
+
+  <!-- Sub-navigation: Servers | Connection Pool | Discover | Catalog -->
+  <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+    <button class="btn btn-sm"
+            :class="{'btn-primary': $store.mcpGateway.activeView === 'servers'}"
+            @click="$store.mcpGateway.setView('servers')">
+      Gateway Servers
+    </button>
+    <button class="btn btn-sm"
+            :class="{'btn-primary': $store.mcpGateway.activeView === 'pool'}"
+            @click="$store.mcpGateway.setView('pool')">
+      Connection Pool
+    </button>
+    <button class="btn btn-sm"
+            :class="{'btn-primary': $store.mcpGateway.activeView === 'discover'}"
+            @click="$store.mcpGateway.setView('discover')">
+      Discover Servers
+    </button>
+    <button class="btn btn-sm"
+            :class="{'btn-primary': $store.mcpGateway.activeView === 'catalog'}"
+            @click="$store.mcpGateway.setView('catalog')">
+      Docker Catalog
+    </button>
+  </div>
+
+  <!-- ========== Server List View ========== -->
+  <div x-show="$store.mcpGateway.activeView === 'servers'">
+
+    <!-- Header + Add Button -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">Registered Servers</h3>
+      <button class="btn btn-sm btn-primary" @click="$store.mcpGateway.openForm()">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">add</span>
+        Register Server
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="$store.mcpGateway.loading" style="text-align: center; padding: 2rem;">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+    </div>
+
+    <!-- Empty State -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.servers.length === 0"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      No gateway servers registered yet. Click "Register Server" to add one.
+    </div>
+
+    <!-- Server Table -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.servers.length > 0">
+      <table class="data-table" style="width: 100%;">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Transport</th>
+            <th>URL / Command</th>
+            <th>Enabled</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template x-for="server in $store.mcpGateway.servers" :key="server.name">
+            <tr>
+              <td x-text="server.name" style="font-weight: 600;"></td>
+              <td>
+                <span class="badge" x-text="$store.mcpGateway.transportLabel(server.transport_type)"></span>
+              </td>
+              <td style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <span x-text="server.url || server.command || '-'"></span>
+              </td>
+              <td>
+                <input type="checkbox"
+                       :checked="server.is_enabled"
+                       @change="$store.mcpGateway.toggleServer(server.name, $event.target.checked)">
+              </td>
+              <td>
+                <button class="btn btn-sm btn-danger"
+                        x-confirm-click="$store.mcpGateway.deleteServer(server.name)"
+                        title="Delete server">
+                  <span class="material-symbols-outlined" style="font-size: 1rem;">delete</span>
+                </button>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Register Server Form -->
+    <div x-show="$store.mcpGateway.showForm"
+         style="margin-top: 1rem; padding: 1rem; border: 1px solid var(--border-color, #333); border-radius: 8px;">
+      <h4 style="margin-top: 0;">Register New Server</h4>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>Name</label>
+        <input type="text" x-model="$store.mcpGateway.formData.name"
+               placeholder="e.g. github, filesystem" class="input">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>Transport Type</label>
+        <select x-model="$store.mcpGateway.formData.transport_type" class="input">
+          <option value="streamable_http">Streamable HTTP</option>
+          <option value="sse">SSE</option>
+          <option value="stdio">Stdio</option>
+        </select>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;"
+           x-show="$store.mcpGateway.formData.transport_type !== 'stdio'">
+        <label>URL</label>
+        <input type="text" x-model="$store.mcpGateway.formData.url"
+               placeholder="http://mcp-server:8000/mcp" class="input">
+      </div>
+
+      <div x-show="$store.mcpGateway.formData.transport_type === 'stdio'">
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Command</label>
+          <input type="text" x-model="$store.mcpGateway.formData.command"
+                 placeholder="npx" class="input">
+        </div>
+        <div class="form-group" style="margin-bottom: 0.75rem;">
+          <label>Args (comma-separated)</label>
+          <input type="text" x-model="$store.mcpGateway.formData.args"
+                 placeholder="-y, @modelcontextprotocol/server-filesystem" class="input">
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>Docker Image (optional)</label>
+        <input type="text" x-model="$store.mcpGateway.formData.docker_image"
+               placeholder="ghcr.io/example/mcp-server:latest" class="input">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>Required Roles (comma-separated, optional)</label>
+        <input type="text" x-model="$store.mcpGateway.formData.required_roles"
+               placeholder="engineering, admin" class="input">
+      </div>
+
+      <div class="form-group" style="margin-bottom: 0.75rem;">
+        <label>
+          <input type="checkbox" x-model="$store.mcpGateway.formData.is_enabled">
+          Enabled
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-sm btn-primary" @click="$store.mcpGateway.createServer()">
+          Register
+        </button>
+        <button class="btn btn-sm" @click="$store.mcpGateway.showForm = false">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== Connection Pool View ========== -->
+  <div x-show="$store.mcpGateway.activeView === 'pool'">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">Connection Pool</h3>
+      <div style="display: flex; gap: 0.5rem;">
+        <button class="btn btn-sm" @click="$store.mcpGateway.loadPoolStatus()">
+          <span class="material-symbols-outlined" style="font-size: 1rem;">refresh</span>
+          Refresh
+        </button>
+        <button class="btn btn-sm btn-primary" @click="$store.mcpGateway.runHealthCheck()">
+          <span class="material-symbols-outlined" style="font-size: 1rem;">health_and_safety</span>
+          Health Check
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="$store.mcpGateway.loading" style="text-align: center; padding: 2rem;">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+    </div>
+
+    <!-- Pool Stats -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.poolStatus">
+      <div style="display: flex; gap: 2rem; margin-bottom: 1rem;">
+        <div>
+          <strong>Active:</strong>
+          <span x-text="$store.mcpGateway.poolStatus?.active_count ?? 0"></span>
+        </div>
+        <div>
+          <strong>Max:</strong>
+          <span x-text="$store.mcpGateway.poolStatus?.max_connections ?? 0"></span>
+        </div>
+      </div>
+
+      <!-- Connection Table -->
+      <div x-show="$store.mcpGateway.poolStatus?.connections?.length > 0">
+        <table class="data-table" style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Server</th>
+              <th>In Use</th>
+              <th>Last Used</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template x-for="conn in $store.mcpGateway.poolStatus.connections" :key="conn.server_name">
+              <tr>
+                <td x-text="conn.server_name" style="font-weight: 600;"></td>
+                <td>
+                  <span :class="conn.in_use ? 'badge badge-active' : 'badge'"
+                        x-text="conn.in_use ? 'Active' : 'Idle'"></span>
+                </td>
+                <td x-text="new Date(conn.last_used_at * 1000).toLocaleTimeString()"></td>
+                <td>
+                  <button class="btn btn-sm"
+                          @click="$store.mcpGateway.evictConnection(conn.server_name)"
+                          title="Evict connection">
+                    <span class="material-symbols-outlined" style="font-size: 1rem;">logout</span>
+                  </button>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty pool -->
+      <div x-show="!$store.mcpGateway.poolStatus?.connections?.length"
+           style="text-align: center; padding: 2rem; opacity: 0.6;">
+        No active connections in the pool.
+      </div>
+    </div>
+
+    <!-- No pool data yet -->
+    <div x-show="!$store.mcpGateway.loading && !$store.mcpGateway.poolStatus"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      Click "Refresh" to load pool status.
+    </div>
+  </div>
+
+  <!-- ========== Discover Servers View ========== -->
+  <div x-show="$store.mcpGateway.activeView === 'discover'">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">Discover MCP Servers</h3>
+    </div>
+
+    <!-- Search Bar -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+      <input type="text" class="input" style="flex: 1;"
+             placeholder="Search MCP Registry (e.g. github, filesystem, slack...)"
+             x-model="$store.mcpGateway.discoveryQuery"
+             @keydown.enter="$store.mcpGateway.searchRegistry($store.mcpGateway.discoveryQuery)">
+      <button class="btn btn-sm btn-primary"
+              @click="$store.mcpGateway.searchRegistry($store.mcpGateway.discoveryQuery)">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">search</span>
+        Search
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="$store.mcpGateway.loading" style="text-align: center; padding: 2rem;">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+    </div>
+
+    <!-- Results -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.discoveryResults.length > 0">
+      <template x-for="result in $store.mcpGateway.discoveryResults" :key="result.name">
+        <div style="padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid var(--border-color, #333); border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600;" x-text="result.name"></div>
+            <div style="opacity: 0.7; font-size: 0.9em;" x-text="result.description || 'No description'"></div>
+            <div x-show="result.packages && result.packages.length > 0" style="margin-top: 0.25rem;">
+              <template x-for="pkg in result.packages" :key="pkg.name">
+                <span class="badge" style="margin-right: 0.25rem;"
+                      x-text="pkg.registry_name + ': ' + pkg.name"></span>
+              </template>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-primary" style="white-space: nowrap;"
+                  @click="$store.mcpGateway.installFromRegistry(result)">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">download</span>
+            Install
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty results -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.discoveryResults.length === 0 && $store.mcpGateway.discoveryQuery"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      No servers found matching your search.
+    </div>
+
+    <!-- Initial state -->
+    <div x-show="!$store.mcpGateway.loading && !$store.mcpGateway.discoveryQuery"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      Search the MCP Registry to discover and install servers.
+    </div>
+  </div>
+
+  <!-- ========== Docker Catalog View ========== -->
+  <div x-show="$store.mcpGateway.activeView === 'catalog'">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">Docker MCP Catalog</h3>
+    </div>
+
+    <p style="opacity: 0.7; margin-bottom: 1rem;">
+      Paste YAML from <code>docker mcp catalog show docker-mcp</code> to browse and install servers.
+    </p>
+
+    <!-- YAML Input -->
+    <div class="form-group" style="margin-bottom: 0.75rem;">
+      <textarea class="input" rows="8" style="font-family: monospace; width: 100%;"
+                placeholder="servers:&#10;  - name: docker/github-mcp&#10;    image: ghcr.io/docker/github-mcp:latest&#10;    transport: stdio"
+                x-model="$store.mcpGateway.catalogYaml"></textarea>
+    </div>
+    <div style="margin-bottom: 1rem;">
+      <button class="btn btn-sm btn-primary"
+              @click="$store.mcpGateway.browseCatalog($store.mcpGateway.catalogYaml)">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">upload</span>
+        Parse Catalog
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="$store.mcpGateway.loading" style="text-align: center; padding: 2rem;">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+    </div>
+
+    <!-- Catalog Entries -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.catalogEntries.length > 0">
+      <template x-for="entry in $store.mcpGateway.catalogEntries" :key="entry.name">
+        <div style="padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid var(--border-color, #333); border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600;" x-text="entry.name"></div>
+            <div style="opacity: 0.7; font-size: 0.9em;" x-text="entry.description || 'No description'"></div>
+            <div style="margin-top: 0.25rem;">
+              <span class="badge" x-text="entry.transport || 'http'"></span>
+              <span x-show="entry.image" class="badge" style="margin-left: 0.25rem;" x-text="entry.image"></span>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-primary" style="white-space: nowrap;"
+                  @click="$store.mcpGateway.installFromCatalog(entry)">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">download</span>
+            Install
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty state -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.catalogEntries.length === 0 && $store.mcpGateway.catalogYaml"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      No valid entries found in the pasted YAML.
+    </div>
+  </div>
+</div>
+</body>
+</html>

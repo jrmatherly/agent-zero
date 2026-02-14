@@ -128,14 +128,39 @@ Four-phase auth system:
 
 ## MCP Gateway
 
-Built-in MCP gateway capabilities for routing, lifecycle, and access control:
+Built-in MCP gateway with multi-server composition, discovery, lifecycle management, and access control:
 
+**Infrastructure (Phase 1):**
 - **Connection Pool**: `python/helpers/mcp_connection_pool.py` — persistent MCP sessions with health checking
 - **Resource Store**: `python/helpers/mcp_resource_store.py` — pluggable backend (InMemory dev, extensible to Redis/Postgres)
 - **Identity Headers**: `python/helpers/mcp_identity.py` — X-Mcp-UserId/UserName/Roles injection, auth header stripping
 - **Container Manager**: `python/helpers/mcp_container_manager.py` — Docker lifecycle for MCP server containers
 - **Permission Model**: Resource-level RBAC (creator + admin + required_roles) per MCP server
 - **Proxy**: `DynamicMcpProxy` in `mcp_server.py` — ASGI reverse proxy at `/mcp`, routes SSE/HTTP/OAuth
+
+**Composition & Runtime (Phase 2):**
+- **Compositor**: `python/helpers/mcp_gateway_compositor.py` — FastMCP 3.0 multi-server mounting with `create_proxy()`, wired into DynamicMcpProxy
+- **Health Checker**: `python/helpers/mcp_gateway_health.py` — pool health checks + Docker container status monitoring
+- **Lifecycle Hooks**: `python/helpers/mcp_gateway_lifecycle.py` — server create/delete side effects (mount/unmount, Docker start/stop, pool eviction)
+- **Registry Client**: `python/helpers/mcp_registry_client.py` — async httpx client for MCP Registry API (`registry.modelcontextprotocol.io`)
+- **Docker Catalog**: `python/helpers/docker_mcp_catalog.py` — YAML parser for `docker mcp catalog show` output
+- **Tool Index**: `python/helpers/mcp_tool_index.py` — keyword-searchable index of tools across all mounted MCP servers
+
+**API Endpoints:**
+- `python/api/mcp_gateway_servers.py` — CRUD for gateway servers (list/create/update/delete/status) with RBAC
+- `python/api/mcp_gateway_pool.py` — Connection pool status and health check
+- `python/api/mcp_gateway_discover.py` — MCP Registry search proxy and server install
+- `python/api/mcp_gateway_catalog.py` — Docker MCP Catalog browse and install
+
+**Agent Tool:**
+- `python/tools/mcp_discover.py` — Agent-facing `mcp_discover` tool (search registry, list tools, search tools)
+- `prompts/agent.system.tool.mcp_discover.md` — Prompt template for discovery tool
+
+**WebUI:**
+- `webui/components/settings/mcp/gateway/mcp-gateway.html` — Gateway management UI (servers, discover, Docker catalog tabs)
+- `webui/components/settings/mcp/gateway/mcp-gateway-store.js` — Alpine.js store for gateway state
+
+**Coexistence:** MCPConfig (agent-side, settings-driven) and McpResourceStore (gateway-side, RBAC-driven) are independent systems that coexist. MCPConfig manages servers the agent connects to; McpResourceStore manages servers the gateway exposes to external clients.
 
 ## Gotchas
 
