@@ -44,7 +44,7 @@ class TestMcpConnectionPool:
 
         pool = McpConnectionPool()
         mock_factory = AsyncMock(return_value=MagicMock())
-        conn = await pool.acquire("test-server", factory=mock_factory)
+        await pool.acquire("test-server", factory=mock_factory)
         await pool.release("test-server")
         assert pool.active_count == 1  # still in pool, just idle
 
