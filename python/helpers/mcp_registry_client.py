@@ -29,8 +29,7 @@ class McpRegistryClient:
     ) -> list[dict]:
         """Search the MCP Registry for servers.
 
-        Returns a list of parsed server dicts. On any error, returns
-        an empty list rather than raising.
+        Raises on network/parsing errors so callers can surface them.
         """
         params: dict = {"limit": limit}
         if query:
@@ -38,14 +37,10 @@ class McpRegistryClient:
         if cursor:
             params["cursor"] = cursor
 
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                resp = await client.get(REGISTRY_URL, params=params)
-                resp.raise_for_status()
-                data = resp.json()
-        except (httpx.HTTPError, httpx.TimeoutException, ValueError) as exc:
-            logger.warning("MCP Registry search failed: %s", exc)
-            return []
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.get(REGISTRY_URL, params=params)
+            resp.raise_for_status()
+            data = resp.json()
 
         return [self._parse_server(entry) for entry in data.get("servers", [])]
 
@@ -86,10 +81,17 @@ class McpRegistryClient:
 
     @staticmethod
     def _parse_server(entry: dict) -> dict:
-        """Extract a flat server dict from the registry response format."""
+        """Extract a flat server dict from the registry response format.
+
+        The registry API returns servers with either 'packages' (local installs)
+        or 'remotes' (hosted endpoints), or both.
+        """
         server = entry.get("server", {})
         return {
             "name": server.get("name", ""),
             "description": server.get("description", ""),
             "packages": server.get("packages", []),
+            "remotes": server.get("remotes", []),
+            "version": server.get("version", ""),
+            "repository": server.get("repository", {}),
         }

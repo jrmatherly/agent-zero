@@ -191,7 +191,12 @@ const model = {
 				query: this.discoveryQuery,
 				limit: 20,
 			});
-			this.discoveryResults = res.data || [];
+			if (res.ok) {
+				this.discoveryResults = res.data || [];
+			} else {
+				this.error = res.error || "Registry search failed";
+				this.discoveryResults = [];
+			}
 		} catch (e) {
 			this.error = e.message;
 		}

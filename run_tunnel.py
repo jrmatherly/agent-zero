@@ -34,8 +34,8 @@ def run():
     @app.route("/", methods=["POST"])
     async def handle_request():
         try:
-            result = await tunnel.handle_request(request=request)  # type: ignore
-            return jsonify(result)
+            # handle_request() already returns a Flask Response
+            return await tunnel.handle_request(request=request)  # type: ignore
         except Exception as e:
             PrintStyle.error(f"Tunnel error: {str(e)}")
             return jsonify({"error": "Internal server error"}), 500

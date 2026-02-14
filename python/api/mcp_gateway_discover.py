@@ -53,35 +53,60 @@ async def handle_install(
         return {"ok": False, "error": "Missing required field: name"}
 
     packages = server_data.get("packages", [])
+    remotes = server_data.get("remotes", [])
 
-    # Infer transport and command from package info
+    # Infer transport and command from package or remote info
     transport_type = "streamable_http"
     command = ""
     args: list[str] = []
     docker_image = ""
+    url = ""
 
     if packages:
         pkg = packages[0]
-        registry = pkg.get("registry_name", "")
+        # Support both old format (registry_name/name/version) and
+        # new format (registryType/identifier)
+        registry = pkg.get("registry_name", "") or pkg.get("registryType", "")
         pkg_name = pkg.get("name", "")
         pkg_version = pkg.get("version", "")
+        identifier = pkg.get("identifier", "")
+        pkg_transport = pkg.get("transport", {}).get("type", "")
 
-        if registry == "npm":
-            transport_type = "stdio"
+        if not pkg_name and identifier:
+            # Parse identifier like "docker.io/user/repo:tag" or "@scope/pkg"
+            pkg_name = identifier.split(":")[0] if ":" in identifier else identifier
+            pkg_version = (
+                identifier.split(":")[-1]
+                if ":" in identifier and identifier.split(":")[-1] != pkg_name
+                else ""
+            )
+
+        if registry in ("npm",):
+            transport_type = pkg_transport or "stdio"
             command = "npx"
             version_suffix = f"@{pkg_version}" if pkg_version else ""
             args = ["-y", f"{pkg_name}{version_suffix}"]
         elif registry in ("pip", "pypi"):
-            transport_type = "stdio"
+            transport_type = pkg_transport or "stdio"
             command = "uvx"
             args = [pkg_name]
-        elif registry == "docker":
-            docker_image = f"{pkg_name}:{pkg_version}" if pkg_version else pkg_name
+        elif registry in ("docker", "oci"):
+            transport_type = pkg_transport or "stdio"
+            docker_image = identifier or (
+                f"{pkg_name}:{pkg_version}" if pkg_version else pkg_name
+            )
+    elif remotes:
+        # Hosted MCP servers with a remote URL
+        remote = remotes[0]
+        remote_type = remote.get("type", "streamable-http")
+        url = remote.get("url", "")
+        transport_type = "streamable_http" if "http" in remote_type else remote_type
 
     resource = McpServerResource(
         name=name,
         transport_type=transport_type,
         created_by=user_id,
+        url=url or None,
         command=command,
         args=args,
         docker_image=docker_image or None,

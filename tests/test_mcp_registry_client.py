@@ -5,8 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from python.helpers.mcp_registry_client import McpRegistryClient, REGISTRY_URL
-
+from python.helpers.mcp_registry_client import REGISTRY_URL, McpRegistryClient
 
 # ---------- Fixtures ----------
 
@@ -66,6 +65,8 @@ async def test_search_returns_servers(client):
     assert results[0]["name"] == "github"
     assert results[0]["description"] == "GitHub MCP server for repository management"
     assert len(results[0]["packages"]) == 1
+    assert results[0]["remotes"] == []
+    assert results[0]["version"] == ""
 
 
 @pytest.mark.asyncio
@@ -138,45 +139,42 @@ async def test_search_empty_results(client):
 
 
 @pytest.mark.asyncio
-async def test_search_network_error_returns_empty(client):
-    """search() returns empty list on network errors, not crash."""
+async def test_search_network_error_raises(client):
+    """search() raises on network errors so callers can surface them."""
     with patch("python.helpers.mcp_registry_client.httpx.AsyncClient") as mock_cls:
         mock_client = AsyncMock()
         mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
         mock_client.get.side_effect = httpx.ConnectError("Connection refused")
 
-        results = await client.search("test")
-
-    assert results == []
+        with pytest.raises(httpx.ConnectError):
+            await client.search("test")
 
 
 @pytest.mark.asyncio
-async def test_search_timeout_returns_empty(client):
-    """search() returns empty list on timeout."""
+async def test_search_timeout_raises(client):
+    """search() raises on timeout so callers can surface them."""
     with patch("python.helpers.mcp_registry_client.httpx.AsyncClient") as mock_cls:
         mock_client = AsyncMock()
         mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
         mock_client.get.side_effect = httpx.TimeoutException("Timed out")
 
-        results = await client.search("test")
-
-    assert results == []
+        with pytest.raises(httpx.TimeoutException):
+            await client.search("test")
 
 
 @pytest.mark.asyncio
-async def test_search_http_error_returns_empty(client):
-    """search() returns empty list on HTTP error status."""
+async def test_search_http_error_raises(client):
+    """search() raises on HTTP error status so callers can surface them."""
     with patch("python.helpers.mcp_registry_client.httpx.AsyncClient") as mock_cls:
         mock_client = AsyncMock()
         mock_cls.return_value.__aenter__ = AsyncMock(return_value=mock_client)
         mock_cls.return_value.__aexit__ = AsyncMock(return_value=False)
         mock_client.get.return_value = _make_response({}, status_code=500)
 
-        results = await client.search("test")
-
-    assert results == []
+        with pytest.raises(httpx.HTTPStatusError):
+            await client.search("test")
 
 
 # ---------- Tests: search_all (pagination) ----------
