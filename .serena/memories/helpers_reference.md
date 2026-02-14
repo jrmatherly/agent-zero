@@ -1,12 +1,14 @@
-# Apollos AI - Helpers Reference (89 modules)
+# Apollos AI - Helpers Reference (103 modules)
 
 ## Grouped by Functional Area
 
-### Memory & Knowledge (5)
+### Memory & Knowledge (7)
 | Module | Purpose |
 |--------|---------|
 | `memory.py` | Vector-backed memory system with FAISS |
 | `vector_db.py` | FAISS wrapper with LocalFileStore cache |
+| `vector_store.py` | Vector store abstraction layer |
+| `faiss_wrapper.py` | FAISS index management utilities |
 | `memory_consolidation.py` | Memory compression and summarization |
 | `knowledge_import.py` | Bulk knowledge base import/indexing |
 | `document_query.py` | Query documents using vector similarity |
@@ -44,20 +46,26 @@
 | `playwright.py` | Direct Playwright integration |
 | `browser.py` | Generic browser interface |
 
-### MCP Integration (2)
+### MCP Integration & Gateway (7)
 | Module | Purpose |
 |--------|---------|
 | `mcp_handler.py` | MCP client (connect to external MCP servers) |
-| `mcp_server.py` | MCP server (expose Apollos AI as MCP, FastMCP + SSE) |
+| `mcp_server.py` | MCP server (expose Apollos AI as MCP, FastMCP 3.0 + SSE) + DynamicMcpProxy |
+| `mcp_connection_pool.py` | Persistent MCP sessions, async-safe with health checking |
+| `mcp_resource_store.py` | Pluggable backend (InMemory), creator+admin+role permissions |
+| `mcp_identity.py` | X-Mcp-UserId/UserName/Roles header injection, auth stripping |
+| `mcp_container_manager.py` | Docker lifecycle management for MCP server containers |
+| `mcp_oauth.py` | OAuth flow support for MCP servers |
 
-### Configuration (5)
+### Configuration (6)
 | Module | Purpose |
 |--------|---------|
 | `settings.py` | Global settings (env override via A0_SET_* prefix) |
 | `projects.py` | Multi-project management |
 | `secrets.py` | Secrets manager with streaming filter |
 | `security.py` | Filename sanitization, security helpers |
-| `branding.py` | Centralized brand config (BRAND_NAME, BRAND_SLUG, BRAND_URL, BRAND_GITHUB_URL) |
+| `branding.py` | Centralized brand config (BRAND_NAME, BRAND_SLUG, BRAND_URL, BRAND_GITHUB_URL, BRAND_UPDATE_CHECK_URL) |
+| `workspace.py` | Workspace path resolution and isolation |
 
 ### Skills (3)
 | Module | Purpose |
@@ -114,7 +122,7 @@
 | `strings.py` | String manipulation helpers |
 | `images.py` | Image processing |
 
-### Infrastructure (10)
+### Infrastructure (12)
 | Module | Purpose |
 |--------|---------|
 | `api.py` | ApiHandler base class |
@@ -124,11 +132,13 @@
 | `context.py` | ContextVar-based async context data |
 | `defer.py` | DeferredTask for async execution |
 | `errors.py` | Error types (RepairableException, HandledException) |
+| `error_response.py` | Standardized error response formatting |
 | `process.py` | Process management |
 | `subagents.py` | Agent hierarchy path resolution |
 | `localization.py` | Multi-language support |
+| `faiss_monkey_patch.py` | FAISS compatibility patch for Python 3.12/ARM |
 
-### Authentication & Multi-User (5)
+### Authentication & Multi-User (10)
 | Module | Purpose |
 |--------|---------|
 | `auth.py` | AuthManager — EntraID OIDC SSO + local fallback, PersistentTokenCache, session management |
@@ -137,6 +147,10 @@
 | `user_store.py` | ORM models (User, Org, Team, etc.) + CRUD (upsert_user, verify_password, sync_group_memberships) |
 | `vault_crypto.py` | AES-256-GCM encryption/decryption with HKDF-derived keys (`VAULT_MASTER_KEY`) |
 | `login.py` | Legacy HMAC-SHA256 authentication (AUTH_LOGIN/AUTH_PASSWORD) |
+| `login_protection.py` | Rate limiting and brute-force protection for login |
+| `tenant.py` | TenantContext for multi-user data scoping and isolation |
+| `rbac.py` | Role-based access control via Casbin (`conf/rbac_model.conf`) |
+| `audit.py` | Audit logging for security-relevant actions |
 
 ### Other (8)
 | Module | Purpose |

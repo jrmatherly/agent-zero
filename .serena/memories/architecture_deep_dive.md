@@ -18,7 +18,7 @@
             │                  │
 ┌───────────▼──────┐ ┌────────▼────────────────────────────────┐
 │ python/api/      │ │ python/websocket_handlers/               │
-│ ~75 REST         │ │ Namespace-based: /, /state_sync, etc.    │
+│ 85 REST          │ │ Namespace-based: /, /state_sync, etc.    │
 │ endpoints        │ │ StateSyncHandler, HelloHandler, etc.     │
 └──────────────────┘ └─────────────────────────────────────────┘
             │
@@ -36,9 +36,9 @@
 └──────────────┘ └───────────┘ └────────────────────────┘
             │
 ┌───────────▼──────────────────────────────────────────────────┐
-│                   python/helpers/ (89 modules)                │
-│  Memory (FAISS) | Shell (local/SSH/Docker) | MCP (client/srv)│
-│  Auth (OIDC+local) | Settings | Skills | History | Tokens    │
+│                  python/helpers/ (103 modules)                │
+│  Memory (FAISS) | Shell (local/SSH/Docker) | MCP Gateway (7) │
+│  Auth (OIDC+local) | RBAC | Tenant | Settings | Skills       │
 │  Search | Browser | vault_crypto | user_store | auth_db      │
 └──────────────────────────────────────────────────────────────┘
 ```

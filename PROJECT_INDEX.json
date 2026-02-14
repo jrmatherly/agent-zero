@@ -497,7 +497,7 @@
 			"version": "3.0.1",
 			"purpose": "Text embeddings"
 		},
-		"fastmcp": { "version": ">=3.0.0rc1", "purpose": "MCP server + gateway" },
+		"fastmcp": { "version": ">=3.0.0rc2", "purpose": "MCP server + gateway" },
 		"fasta2a": { "version": "0.5.0", "purpose": "Agent-to-Agent protocol" },
 		"browser-use": { "version": "0.5.11", "purpose": "Browser automation" },
 		"playwright": { "version": "1.52.0", "purpose": "Browser control" },

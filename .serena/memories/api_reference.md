@@ -20,6 +20,7 @@ Each handler is mounted at `/{filename}` (e.g., `message.py` → `/message`).
 | `/api_reset_chat` | POST | API Key | Reset chat via API |
 | `/api_terminate_chat` | POST | API Key | Terminate chat via API |
 | `/history_get` | POST | Auth+CSRF | Get conversation history |
+| `/chat_files_path_get` | POST | Auth+CSRF | Get chat file paths |
 | `/poll` | POST | Auth+CSRF | Poll for updates |
 | `/nudge` | POST | Auth+CSRF | Nudge agent |
 | `/pause` | POST | Auth+CSRF | Pause agent execution |
@@ -83,6 +84,9 @@ Each handler is mounted at `/{filename}` (e.g., `message.py` → `/message`).
 | `/mcp_servers_apply` | POST | Auth+CSRF | Apply MCP config |
 | `/mcp_server_get_detail` | POST | Auth+CSRF | Get MCP server details |
 | `/mcp_server_get_log` | POST | Auth+CSRF | Get MCP server logs |
+| `/mcp_connections` | POST | Auth+CSRF | MCP connection pool management |
+| `/mcp_oauth_start` | POST | Auth+CSRF | Initiate MCP OAuth flow |
+| `/mcp_services` | POST | Auth+CSRF | MCP service discovery |
 
 ### Notifications
 | Endpoint | Methods | Auth | Purpose |
@@ -130,3 +134,18 @@ Each handler is mounted at `/{filename}` (e.g., `message.py` → `/message`).
 |----------|---------|------|---------|
 | `/login` | GET,POST | None | Login page + handler |
 | `/logout` | GET | None | Logout handler |
+| `/user_profile` | POST | Auth+CSRF | Get current user info |
+
+### Admin
+| Endpoint | Methods | Auth | Purpose |
+|----------|---------|------|---------|
+| `/admin_users` | POST | Auth+Admin | User management CRUD |
+| `/admin_api_keys` | POST | Auth+Admin | API key management |
+| `/admin_group_mappings` | POST | Auth+Admin | Entra group → role mappings |
+| `/admin_orgs` | POST | Auth+Admin | Organization management |
+| `/admin_teams` | POST | Auth+Admin | Team management |
+
+### System
+| Endpoint | Methods | Auth | Purpose |
+|----------|---------|------|---------|
+| `/switch_context` | POST | Auth+CSRF | Switch project context |

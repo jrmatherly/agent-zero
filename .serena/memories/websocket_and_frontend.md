@@ -15,6 +15,7 @@
 | `RootDefaultHandler` | `/` | Diagnostics only (no auth) |
 | `StateSyncHandler` | `/state_sync` | Bidirectional state sync |
 | `HelloHandler` | `/hello` | Sample/testing handler |
+| `DevWebsocketTestHandler` | `/dev_test` | Development/testing WebSocket handler |
 
 ### Frontend Client (`webui/js/websocket.js`)
 - **WebSocketClient**: Socket.IO wrapper per namespace

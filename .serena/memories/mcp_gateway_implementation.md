@@ -3,10 +3,9 @@
 ## Overview
 The MCP Gateway adds connection pooling, multi-server composition, Docker-based MCP server lifecycle, unified tool registry, and identity header propagation to Apollos AI, leveraging FastMCP 3.0 provider architecture.
 
-## Branch
-- **Feature branch**: `feat/mcp-gateway` (7 commits, 826 lines added)
-- **Base**: `main` at `f41ea36` (v0.4.0)
-- **Worktree**: `.worktrees/mcp-gateway`
+## Status
+- **Merged to main** (PR #11, previously on `feat/mcp-gateway` branch)
+- All gateway components are live on the `main` branch
 
 ## Components Implemented
 
@@ -46,8 +45,8 @@ The MCP Gateway adds connection pooling, multi-server composition, Docker-based 
 - 3 tests in `tests/test_mcp_gateway_api.py` validating store integration
 
 ## Test Results
-- **635 passed**, 1 skipped, 21 warnings
-- 35 new tests total
+- 35 MCP Gateway tests across 5 test files
+- All tests passing as part of the full 49-file test suite
 - Lint clean (Ruff + Biome)
 - Format clean
 

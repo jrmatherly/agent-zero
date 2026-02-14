@@ -71,15 +71,27 @@ Apollos AI is a personal, organic agentic AI framework that grows and learns wit
 - **Dual login UI**: `webui/login.html` shows SSO button (if OIDC configured) + local form
 - **Routes**: `/login` (GET/POST), `/login/entra`, `/auth/callback`, `/logout`
 
+## MCP Gateway
+- **Connection Pool**: `mcp_connection_pool.py` — persistent MCP sessions, async-safe, health checking
+- **Resource Store**: `mcp_resource_store.py` — pluggable backend (InMemory), creator+admin+role permissions
+- **Identity Headers**: `mcp_identity.py` — X-Mcp-UserId/UserName/Roles injection, auth stripping
+- **Container Manager**: `mcp_container_manager.py` — Docker lifecycle for MCP server containers
+- **OAuth**: `mcp_oauth.py` — OAuth flow support for MCP servers
+- **Proxy**: `DynamicMcpProxy` in `mcp_server.py` — ASGI reverse proxy at `/mcp`
+- **Tests**: 35 tests across 5 files (mcp_connection_pool, mcp_resource_store, mcp_identity, mcp_container_manager, mcp_gateway_api)
+
 ## GitHub
 - **Remote**: `jrmatherly/apollos-ai` (fork of `agent0ai/agent-zero`)
 - **Container Registry**: GHCR (`ghcr.io/jrmatherly/apollos-ai`, `ghcr.io/jrmatherly/apollos-ai-base`)
 - **CI/CD Workflows**:
   - `ci.yml` — Lint + format + test (parallel jobs); paths-ignore, concurrency, uv cache
-  - `drift.yml` — Codebase pattern analysis (push to main, manual dispatch, weekly)
-  - `release.yml` — git-cliff changelog + GitHub release on `v*` tag push
+  - `claude.yml` — Claude Code agent for issue/PR comment responses and assigned issues
+  - `claude-code-review.yml` — Claude Code automated PR review on open/sync/ready
+  - `drift.yml` — Codebase pattern analysis (manual dispatch only)
+  - `release.yml` — git-cliff changelog + GitHub release on `v*` tag push; builds & pushes Docker app image to GHCR
+  - `docker-base.yml` — Builds & pushes Docker base image to GHCR on `docker/base/**` changes
   - `hooks-check.yml` — hk pre-commit validation on PRs
   - `codeql.yml` — CodeQL security analysis (Python) on push/PR + weekly
   - `dependency-review.yml` — Dependency review + requirements.txt sync on PRs
-  - `dependabot.yml` — Weekly uv + GitHub Actions dependency updates
+  - `dependabot.yml` — Weekly uv + GitHub Actions + Docker base image dependency updates
   - Issue templates (YAML forms), PR template
