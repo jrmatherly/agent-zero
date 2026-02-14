@@ -126,6 +126,17 @@ Four-phase auth system:
 - **Legacy compat**: `AUTH_LOGIN`/`AUTH_PASSWORD` still works as single-user fallback
 - **Migrations**: `uv run alembic upgrade head` (run automatically by bootstrap)
 
+## MCP Gateway
+
+Built-in MCP gateway capabilities for routing, lifecycle, and access control:
+
+- **Connection Pool**: `python/helpers/mcp_connection_pool.py` — persistent MCP sessions with health checking
+- **Resource Store**: `python/helpers/mcp_resource_store.py` — pluggable backend (InMemory dev, extensible to Redis/Postgres)
+- **Identity Headers**: `python/helpers/mcp_identity.py` — X-Mcp-UserId/UserName/Roles injection, auth header stripping
+- **Container Manager**: `python/helpers/mcp_container_manager.py` — Docker lifecycle for MCP server containers
+- **Permission Model**: Resource-level RBAC (creator + admin + required_roles) per MCP server
+- **Proxy**: `DynamicMcpProxy` in `mcp_server.py` — ASGI reverse proxy at `/mcp`, routes SSE/HTTP/OAuth
+
 ## Gotchas
 
 - **faiss-cpu pinned at 1.11.0** — do not upgrade until 1.15.0 (SWIG 4.4 + numpy.distutils fix)
