@@ -12,7 +12,7 @@ Apollos AI can receive events from external platforms via webhooks, process them
 
 ## Architecture
 
-```
+```text
 Platform (Slack/GitHub/Jira)
     │
     ▼  webhook POST

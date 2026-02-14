@@ -35,9 +35,11 @@ Save this value — you'll use it in both Jira and Apollos AI configuration.
    | Comment > created | New comments trigger agent response |
 
 5. Optionally, use the **JQL filter** to scope to specific projects:
-   ```
+
+   ```text
    project = MYPROJECT
    ```
+
 6. Click **Create**.
 
 ## Step 3: Configure Environment Variables
