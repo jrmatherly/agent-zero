@@ -170,6 +170,15 @@ class Settings(TypedDict):
 
     update_check_enabled: bool
 
+    # Platform integrations
+    integrations_enabled: bool
+    slack_signing_secret: str
+    slack_bot_token: str
+    github_webhook_secret: str
+    github_app_id: str
+    jira_webhook_secret: str
+    jira_site_url: str
+
 
 class PartialSettings(Settings, total=False):
     pass
@@ -772,6 +781,14 @@ def get_default_settings() -> Settings:
         secrets="",
         litellm_global_kwargs=get_default_value("litellm_global_kwargs", {}),
         update_check_enabled=get_default_value("update_check_enabled", True),
+        # Platform integrations
+        integrations_enabled=get_default_value("integrations_enabled", False),
+        slack_signing_secret=get_default_value("slack_signing_secret", ""),
+        slack_bot_token=get_default_value("slack_bot_token", ""),
+        github_webhook_secret=get_default_value("github_webhook_secret", ""),
+        github_app_id=get_default_value("github_app_id", ""),
+        jira_webhook_secret=get_default_value("jira_webhook_secret", ""),
+        jira_site_url=get_default_value("jira_site_url", ""),
     )
 
 
