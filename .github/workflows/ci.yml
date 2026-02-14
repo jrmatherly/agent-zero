@@ -73,6 +73,11 @@ jobs:
       - uses: jdx/mise-action@v3
         with:
           experimental: true
+      - name: Restore virtual environment cache
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
       - name: Install dependencies
         run: mise run install
       - name: Run tests with coverage enforcement
