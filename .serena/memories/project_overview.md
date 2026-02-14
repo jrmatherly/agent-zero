@@ -40,9 +40,9 @@ Apollos AI is a personal, organic agentic AI framework that grows and learns wit
 - `webui/` — Frontend HTML/CSS/JS (Alpine.js + vanilla JS)
 - `knowledge/` — Knowledge base files for RAG
 - `skills/` — SKILL.md standard skills (portable agent capabilities)
-- `tests/` — 28 pytest test files
+- `tests/` — 49 pytest test files
 - `docker/` — Docker build scripts (base image + run scripts)
-- `docs/` — 21 documentation files (includes reference/environment-variables.md)
+- `docs/` — 24 documentation files (includes reference/environment-variables.md)
 - `conf/` — Runtime configuration (model_providers.yaml)
 - `docs/reference/` — Reference documentation (environment-variables.md)
 - `.drift/` — DriftDetect analysis artifacts (patterns, indexes, views, audit)
@@ -53,7 +53,7 @@ Apollos AI is a personal, organic agentic AI framework that grows and learns wit
 - **Auto-discovery**: Tools, API handlers, and WebSocket handlers are auto-loaded from their folders
 - **Multi-agent**: Agents can spawn subordinate agents; the first agent's superior is the human user
 - **Memory**: Persistent vector-DB-based memory with FAISS (configurable embeddings: local or remote via LiteLLM)
-- **Branding**: Centralized `python/helpers/branding.py` with 4 env vars; frontend Alpine.js store; prompt `{{brand_name}}` injection
+- **Branding**: Centralized `python/helpers/branding.py` with 5 env vars (BRAND_NAME, BRAND_SLUG, BRAND_URL, BRAND_GITHUB_URL, BRAND_UPDATE_CHECK_URL); frontend Alpine.js store; prompt `{{brand_name}}` injection
 - **Prompt-driven**: Behavior is defined by prompts in `prompts/` folder, fully customizable
 
 ## Authentication System (Phase 0+1)
