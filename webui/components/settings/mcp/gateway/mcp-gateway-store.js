@@ -5,13 +5,15 @@ const model = {
 	// UI state
 	loading: false,
 	error: null,
-	activeView: "servers", // "servers" | "pool"
+	activeView: "servers", // "servers" | "pool" | "discover"
 	showForm: false,
 	editingServer: null,
 
 	// Data
 	servers: [],
 	poolStatus: null,
+	discoveryResults: [],
+	discoveryQuery: "",
 
 	// Form defaults
 	formData: {
@@ -175,6 +177,43 @@ const model = {
 		}
 	},
 
+	// ---------- Discovery ----------
+
+	async searchRegistry(query) {
+		this.loading = true;
+		this.error = null;
+		this.discoveryQuery = query || "";
+		try {
+			const res = await callJsonApi("/mcp_gateway_discover", {
+				action: "search",
+				query: this.discoveryQuery,
+				limit: 20,
+			});
+			this.discoveryResults = res.data || [];
+		} catch (e) {
+			this.error = e.message;
+		}
+		this.loading = false;
+	},
+
+	async installFromRegistry(serverData) {
+		this.error = null;
+		try {
+			const res = await callJsonApi("/mcp_gateway_discover", {
+				action: "install",
+				server: serverData,
+			});
+			if (res.ok) {
+				await this.loadServers();
+				this.setView("servers");
+			} else {
+				this.error = res.error || "Failed to install server";
+			}
+		} catch (e) {
+			this.error = e.message;
+		}
+	},
+
 	// ---------- UI helpers ----------
 
 	openForm() {
@@ -199,6 +238,7 @@ const model = {
 	setView(view) {
 		this.activeView = view;
 		if (view === "pool") this.loadPoolStatus();
+		else if (view === "discover") this.searchRegistry(this.discoveryQuery);
 		else this.loadServers();
 	},
 

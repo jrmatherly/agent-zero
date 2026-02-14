@@ -17,7 +17,7 @@
     <button class="btn btn-sm" @click="$store.mcpGateway.error = null">Dismiss</button>
   </div>
 
-  <!-- Sub-navigation: Servers | Connection Pool -->
+  <!-- Sub-navigation: Servers | Connection Pool | Discover -->
   <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
     <button class="btn btn-sm"
             :class="{'btn-primary': $store.mcpGateway.activeView === 'servers'}"
@@ -28,6 +28,11 @@
             :class="{'btn-primary': $store.mcpGateway.activeView === 'pool'}"
             @click="$store.mcpGateway.setView('pool')">
       Connection Pool
+    </button>
+    <button class="btn btn-sm"
+            :class="{'btn-primary': $store.mcpGateway.activeView === 'discover'}"
+            @click="$store.mcpGateway.setView('discover')">
+      Discover Servers
     </button>
   </div>
 
@@ -243,6 +248,67 @@
     <div x-show="!$store.mcpGateway.loading && !$store.mcpGateway.poolStatus"
          style="text-align: center; padding: 2rem; opacity: 0.6;">
       Click "Refresh" to load pool status.
+    </div>
+  </div>
+
+  <!-- ========== Discover Servers View ========== -->
+  <div x-show="$store.mcpGateway.activeView === 'discover'">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+      <h3 style="margin: 0;">Discover MCP Servers</h3>
+    </div>
+
+    <!-- Search Bar -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+      <input type="text" class="input" style="flex: 1;"
+             placeholder="Search MCP Registry (e.g. github, filesystem, slack...)"
+             x-model="$store.mcpGateway.discoveryQuery"
+             @keydown.enter="$store.mcpGateway.searchRegistry($store.mcpGateway.discoveryQuery)">
+      <button class="btn btn-sm btn-primary"
+              @click="$store.mcpGateway.searchRegistry($store.mcpGateway.discoveryQuery)">
+        <span class="material-symbols-outlined" style="font-size: 1rem;">search</span>
+        Search
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="$store.mcpGateway.loading" style="text-align: center; padding: 2rem;">
+      <span class="material-symbols-outlined spinning">progress_activity</span>
+    </div>
+
+    <!-- Results -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.discoveryResults.length > 0">
+      <template x-for="result in $store.mcpGateway.discoveryResults" :key="result.name">
+        <div style="padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid var(--border-color, #333); border-radius: 8px; display: flex; justify-content: space-between; align-items: flex-start;">
+          <div style="flex: 1;">
+            <div style="font-weight: 600;" x-text="result.name"></div>
+            <div style="opacity: 0.7; font-size: 0.9em;" x-text="result.description || 'No description'"></div>
+            <div x-show="result.packages && result.packages.length > 0" style="margin-top: 0.25rem;">
+              <template x-for="pkg in result.packages" :key="pkg.name">
+                <span class="badge" style="margin-right: 0.25rem;"
+                      x-text="pkg.registry_name + ': ' + pkg.name"></span>
+              </template>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-primary" style="white-space: nowrap;"
+                  @click="$store.mcpGateway.installFromRegistry(result)">
+            <span class="material-symbols-outlined" style="font-size: 1rem;">download</span>
+            Install
+          </button>
+        </div>
+      </template>
+    </div>
+
+    <!-- Empty results -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.discoveryResults.length === 0 && $store.mcpGateway.discoveryQuery"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      No servers found matching your search.
+    </div>
+
+    <!-- Initial state -->
+    <div x-show="!$store.mcpGateway.loading && !$store.mcpGateway.discoveryQuery"
+         style="text-align: center; padding: 2rem; opacity: 0.6;">
+      Search the MCP Registry to discover and install servers.
     </div>
   </div>
 </div>
