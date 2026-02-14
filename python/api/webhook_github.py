@@ -132,7 +132,7 @@ class WebhookGithub(ApiHandler):
 
         webhook_ctx = WebhookContext(
             source=SourceType.GITHUB,
-            channel_id=repo,
+            channel_id=message.channel_id,
             metadata={
                 "issue_number": number,
                 "event_type": event_type,
@@ -142,7 +142,7 @@ class WebhookGithub(ApiHandler):
         )
 
         callback = CallbackRegistration(
-            conversation_id=f"github:{repo}:{item_type}:{number}",
+            conversation_id=f"github:{message.channel_id}:{item_type}:{number}",
             webhook_context=webhook_ctx,
         )
         registry = CallbackRegistry.get_instance()
