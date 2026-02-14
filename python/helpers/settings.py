@@ -937,13 +937,26 @@ def _dict_to_env(data_dict):
 
 
 def set_root_password(password: str):
+    """Set the SSH password for both root and appuser in the container.
+
+    Despite the name, this sets the password for all container users that need
+    SSH access.  The env var ROOT_PASSWORD is the canonical source of truth.
+    """
     if not runtime.is_dockerized():
         raise Exception("root password can only be set in dockerized environments")
-    _result = subprocess.run(
+    # Set for root
+    subprocess.run(
         ["chpasswd"],
         input=f"root:{password}".encode(),
         capture_output=True,
         check=True,
+    )
+    # Set for appuser (SSH connects as appuser, not root)
+    subprocess.run(
+        ["chpasswd"],
+        input=f"appuser:{password}".encode(),
+        capture_output=True,
+        check=False,  # appuser may not exist in all environments
     )
     dotenv.save_dotenv_value(dotenv.KEY_ROOT_PASSWORD, password)
 

@@ -24,17 +24,26 @@ chown -R appuser:appuser /a0/usr /a0/tmp 2>/dev/null || true
 mkdir -p /home/appuser/.local/share
 chown -R appuser:appuser /home/appuser/.local
 
-# Set root SSH password (requires root; done here instead of prepare.py)
+# Set SSH password for root and appuser (requires root; done here instead of prepare.py).
+# ROOT_PASSWORD env var is the canonical name — used by Python to SSH into the container.
 if [ -f /a0/usr/.env ]; then
-    ROOT_PASS=$(grep -E '^ROOT_PASSWORD=' /a0/usr/.env 2>/dev/null | cut -d= -f2-)
+    SSH_PASS=$(grep -E '^ROOT_PASSWORD=' /a0/usr/.env 2>/dev/null | cut -d= -f2-)
 fi
-if [ -z "$ROOT_PASS" ]; then
-    ROOT_PASS=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+if [ -z "$SSH_PASS" ]; then
+    SSH_PASS=$(head -c 24 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+    # Persist generated password so the Python app can read it for SSH connections
+    if [ -f /a0/usr/.env ]; then
+        echo "ROOT_PASSWORD=${SSH_PASS}" >> /a0/usr/.env
+    else
+        echo "ROOT_PASSWORD=${SSH_PASS}" > /a0/usr/.env
+    fi
+    chmod 600 /a0/usr/.env
+    echo "   ├─ ROOT_PASSWORD  generated and saved to .env"
 fi
-echo "root:${ROOT_PASS}" | chpasswd 2>/dev/null && \
+echo "root:${SSH_PASS}" | chpasswd 2>/dev/null && \
     echo "   ├─ Root password  configured" || \
     echo "   ├─ Root password  skipped (chpasswd unavailable)"
-echo "appuser:${ROOT_PASS}" | chpasswd 2>/dev/null && \
+echo "appuser:${SSH_PASS}" | chpasswd 2>/dev/null && \
     echo "   ├─ Appuser SSH    configured" || \
     echo "   ├─ Appuser SSH    skipped (chpasswd unavailable)"
 

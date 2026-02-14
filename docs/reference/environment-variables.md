@@ -15,8 +15,8 @@ Variables in `usr/.env` override system environment. The file is gitignored and 
 |----------|-------------|--------|---------|----------|
 | `AUTH_LOGIN` | Legacy single-user login username. For multi-user accounts, use `ADMIN_EMAIL`/`ADMIN_PASSWORD` instead. Kept as a backward-compatible fallback. | Any string | *(empty)* | No |
 | `AUTH_PASSWORD` | Legacy single-user login password. Paired with `AUTH_LOGIN`. | Any string | *(empty)* | No |
-| `ROOT_PASSWORD` | Root password for code execution container. Auto-generated (32-char alphanumeric) inside Docker if unset. | Any string | *(auto-generated in Docker)* | No |
-| `RFC_PASSWORD` | Remote Function Call password for SSH/HTTP to execution sandbox | Any string | *(empty)* | No |
+| `ROOT_PASSWORD` | SSH password for the code execution container (applied to both `root` and `appuser`). Auto-generated (32-char alphanumeric) and persisted to `.env` by the container if unset. | Any string | *(auto-generated in Docker)* | No |
+| `RFC_PASSWORD` | HTTP password for Remote Function Calls between dev host and execution container. | Any string | *(empty)* | No |
 | `FLASK_SECRET_KEY` | Flask session signing key; auto-generated if unset | Hex string (64 chars) | Random `secrets.token_hex(32)` | No |
 | `ALLOWED_ORIGINS` | Comma-separated list of allowed origins for CSRF validation. Auto-populated on first visit. This controls the CSRF origin allowlist, NOT the Flask-CORS configuration. For CORS origins, use `CORS_ALLOWED_ORIGINS`. | URL list | *(empty — auto-populated on first visit)* | No |
 | `SESSION_COOKIE_SECURE` | Set to `true`, `1`, or `yes` to enable the `Secure` flag on session cookies. Required for HTTPS deployments. | `true`, `1`, `yes` | *(empty — disabled)* | No |
