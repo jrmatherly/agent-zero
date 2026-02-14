@@ -110,19 +110,35 @@ A typical interaction flow within Apollos AI might look like this:
 Tools are functionalities that agents can leverage. These can include anything from web search and code execution to interacting with APIs or controlling external software. Apollos AI provides a mechanism for defining and integrating both built-in and custom tools.
 
 #### Built-in Tools
-Apollos AI comes with a set of built-in tools designed to help agents perform tasks efficiently:
+Apollos AI comes with 19 active built-in tools designed to help agents perform tasks efficiently:
 
 | Tool | Function |
 | --- | --- |
-| behavior_adjustment | Apollos AI use this tool to change its behavior according to a prior request from the user |
-| call_subordinate | Allows agents to delegate tasks to subordinate agents |
-| code_execution_tool | Allows agents to execute Python, Node.js, and Shell code in the terminal |
+| a2a_chat | Communicates with external agents via the A2A protocol |
+| behaviour_adjustment | Changes agent behavior according to user requests |
+| browser_agent | Automates web browser interactions via browser-use |
+| call_subordinate | Delegates tasks to subordinate agents |
+| code_execution_tool | Executes Python, Node.js, and Shell code in the terminal |
+| document_query | Queries and extracts information from documents |
 | input | Allows agents to use the keyboard to interact with an active shell |
-| response_tool | Allows agents to output a response |
-| memory_tool | Enables agents to save, load, delete and forget information from memory |
+| memory_delete | Permanently deletes specific memories from the vector database |
+| memory_forget | Removes memories matching a query from the vector database |
+| memory_load | Retrieves relevant memories from the vector database |
+| memory_save | Stores information in the vector database for later retrieval |
+| notify_user | Sends notifications to the user via the notification system |
+| response | Outputs a final response to the user (ends the monologue loop) |
+| scheduler | Creates, manages, and monitors scheduled tasks |
+| search_engine | Searches the web using SearXNG metasearch engine |
+| skills_tool | Lists, loads, and reads files from available skills |
+| unknown | Handles unrecognized tool calls gracefully |
+| vision_load | Processes and analyzes images for the agent |
+| wait | Pauses agent execution for a specified duration |
+
+> [!NOTE]
+> 4 additional tools are archived (disabled with `._py` suffix): `browser`, `browser_do`, `browser_open`, `knowledge_tool`.
 
 #### SearXNG Integration
-Apollos AI has integrated SearXNG as its primary search tool, replacing the previous knowledge tools (Perplexity and DuckDuckGo). This integration enhances the agent's ability to retrieve information while ensuring user privacy and customization.
+Apollos AI has integrated SearXNG as its primary search tool, serving as the primary search backend. Alternative search helpers (Perplexity, DuckDuckGo) remain available in `python/helpers/` for custom configurations.
 
 - Privacy-Focused Search
 SearXNG is an open-source metasearch engine that allows users to search multiple sources without tracking their queries. This integration ensures that user data remains private and secure while accessing a wide range of information.
@@ -151,6 +167,18 @@ Users can create custom tools to extend Apollos AI's capabilities. Custom tools 
 > To save yourself some tokens, use the [Skills module](#6-skills)
 > to add contextual expertise that is only loaded when relevant.
 
+### WebSocket Handlers
+Apollos AI uses a WebSocket infrastructure for real-time communication. Four handlers are auto-discovered from `python/websocket_handlers/`:
+
+| Handler | Namespace | Function |
+| --- | --- | --- |
+| RootDefaultHandler | / (root) | Default handler for the root namespace |
+| StateSyncHandler | /state_sync | Real-time state synchronization between backend and frontend |
+| HelloHandler | /hello | Connection health check and greeting |
+| DevWebsocketTestHandler | /dev_websocket_test | Developer testing harness for WebSocket events |
+
+See the [WebSocket Infrastructure Guide](websockets.md) for details.
+
 ### 3. Memory System
 The memory system is a critical component of Apollos AI, enabling the agent to learn and adapt from past interactions. It operates on a hybrid model where part of the memory is managed automatically by the framework while users can also manually input and extract information.
 
@@ -166,7 +194,7 @@ The memory is categorized into four distinct areas:
 - The **utility model** handles summarization and memory extraction; it must be capable enough to distinguish durable knowledge from noise.
 
 #### Memory Management Best Practices
-- After important sessions, ask the agent to **“memorize learning opportunities from the current session.”**
+- After important sessions, ask the agent to **"memorize learning opportunities from the current session."**
 - For long-running workflows, **distill durable knowledge into prompts** rather than relying exclusively on memory.
 
 #### Messages History and Summarization
@@ -250,7 +278,7 @@ The `prompts` directory contains various Markdown files that control agent behav
   - Changes are applied without disrupting other components
   - Maintains separation between core functionality and behavioral rules
 
-> [!NOTE]  
+> [!NOTE]
 > You can customize any of these files. Apollos AI will use files in `agents/<agent_profile>/prompts/` when present, and fall back to `prompts/` for everything else.
 
 > [!TIP]
@@ -343,6 +371,30 @@ Extensions can be found in `python/extensions` directory:
 4. Ensure compatibility with main system
 5. Test thoroughly before deployment
 
-> [!NOTE]  
+### MCP Gateway
+Apollos AI includes a built-in MCP (Model Context Protocol) gateway for routing, lifecycle management, and access control of MCP servers:
+
+- **Connection Pool** (`python/helpers/mcp_connection_pool.py`): Persistent MCP sessions with async-safe connection management and health checking
+- **Resource Store** (`python/helpers/mcp_resource_store.py`): Pluggable backend (InMemory for development, extensible to Redis/Postgres) with resource-level RBAC (creator + admin + required_roles)
+- **Identity Headers** (`python/helpers/mcp_identity.py`): Automatic `X-Mcp-UserId`/`UserName`/`Roles` header injection with auth header stripping for downstream servers
+- **Container Manager** (`python/helpers/mcp_container_manager.py`): Docker lifecycle management for MCP server containers (create, start, stop, health check)
+- **Dynamic Proxy** (`DynamicMcpProxy` in `python/helpers/mcp_server.py`): ASGI reverse proxy at `/mcp` that routes SSE/HTTP/OAuth to the appropriate MCP server
+
+The MCP Gateway integrates with the authentication system's RBAC layer to enforce per-server access control.
+
+### Authentication System
+Apollos AI includes a multi-layer authentication system:
+
+- **Local Login**: Argon2id password hashing with session management
+- **OIDC SSO**: Microsoft Entra ID integration via MSAL
+- **RBAC**: Role-based access control via Casbin (`conf/rbac_model.conf`)
+- **Vault**: AES-256-GCM encrypted secret storage (`python/helpers/vault_crypto.py`)
+- **Tenant Isolation**: Multi-user data scoping via `python/helpers/tenant.py`
+- **Admin Bootstrap**: Automatic admin user creation from `ADMIN_EMAIL`/`ADMIN_PASSWORD` env vars
+- **Legacy Fallback**: Single-user `AUTH_LOGIN`/`AUTH_PASSWORD` still supported
+
+See [Azure Enterprise Setup](../guides/azure-enterprise-setup.md) for OIDC configuration.
+
+> [!NOTE]
 > Consider contributing valuable custom components to the main repository.
 > See [Contributing](../guides/contribution.md) for more information.

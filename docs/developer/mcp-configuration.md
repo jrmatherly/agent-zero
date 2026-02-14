@@ -25,7 +25,7 @@ Apollos AI discovers and integrates MCP tools dynamically through the following 
 3. **Server Startup**: Apollos AI initializes configured MCP servers (stdio) or connects to them (remote). For `npx`/`uvx` based servers, the first run downloads packages.
 4. **Tool Discovery**: Upon initialization, Apollos AI connects to each enabled MCP server and queries for available tools, descriptions, and parameters.
 5. **Dynamic Prompting**: Tool information is injected into the agent's system prompt. The `{{tools}}` placeholder in templates (e.g., `prompts/agent.system.mcp_tools.md`) is replaced with the formatted tool list.
-6. **Tool Invocation**: When the LLM requests an MCP tool, Apollos AI's `process_tools` method (`mcp_handler.py`) routes the request to the appropriate MCP server.
+6. **Tool Invocation**: When the LLM requests an MCP tool, Apollos AI's `call_tool` method on `MCPConfig` (`mcp_handler.py`) routes the request to the appropriate MCP server.
 
 ## Configuration File Structure
 
@@ -218,9 +218,9 @@ The LLM formulates the appropriate JSON request automatically.
 
 ### Execution Flow
 
-1. `process_tools` method receives tool request
-2. `mcp_handler.py` checks if tool name exists in `MCPConfig`
-3. If found: delegates to corresponding MCP server
+1. `MCPConfig.call_tool()` method receives tool request
+2. Checks if tool name exists in configured MCP servers
+3. If found: delegates to corresponding MCP server via `MCPClientBase.call_tool()`
 4. If not found: attempts to find built-in tool with that name
 
 This prioritization allows MCP tools to extend or override built-in functionality.

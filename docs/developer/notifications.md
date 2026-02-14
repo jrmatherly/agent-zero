@@ -7,31 +7,108 @@ Quick guide for using the notification system in Apollos AI.
 
 ## Backend Usage
 
-Use `AgentNotification` helper methods anywhere in your Python code:
+Use `NotificationManager` to send notifications from anywhere in your Python code:
 
 ```python
-from python.helpers.notification import AgentNotification
+from python.helpers.notification import NotificationManager, NotificationType, NotificationPriority
 
 # Basic notifications
-AgentNotification.info("Operation completed")
-AgentNotification.success("File saved successfully", "File Manager")
-AgentNotification.warning("High CPU usage detected", "System Monitor")
-AgentNotification.error("Connection failed", "Network Error")
-AgentNotification.progress("Processing files...", "Task Progress")
+NotificationManager.send_notification(
+    type=NotificationType.INFO,
+    priority=NotificationPriority.NORMAL,
+    message="Operation completed",
+)
+
+NotificationManager.send_notification(
+    type=NotificationType.SUCCESS,
+    priority=NotificationPriority.NORMAL,
+    message="File saved successfully",
+    title="File Manager",
+)
+
+NotificationManager.send_notification(
+    type=NotificationType.WARNING,
+    priority=NotificationPriority.HIGH,
+    message="High CPU usage detected",
+    title="System Monitor",
+)
+
+NotificationManager.send_notification(
+    type=NotificationType.ERROR,
+    priority=NotificationPriority.HIGH,
+    message="Connection failed",
+    title="Network Error",
+)
+
+NotificationManager.send_notification(
+    type=NotificationType.PROGRESS,
+    priority=NotificationPriority.NORMAL,
+    message="Processing files...",
+    title="Task Progress",
+)
 
 # With details and custom display time
-AgentNotification.info(
+NotificationManager.send_notification(
+    type=NotificationType.INFO,
+    priority=NotificationPriority.NORMAL,
     message="System backup completed",
     title="Backup Manager",
     detail="<p>Backup size: <strong>2.4 GB</strong></p>",
-    display_time=8  # seconds
+    display_time=8,  # seconds
 )
 
 # Grouped notifications (replaces previous in same group)
-AgentNotification.progress("Download: 25%", "File Download", group="download-status")
-AgentNotification.progress("Download: 75%", "File Download", group="download-status")  # Replaces previous
-AgentNotification.progress("Download: Complete!", "File Download", group="download-status")  # Replaces previous
+NotificationManager.send_notification(
+    type=NotificationType.PROGRESS,
+    priority=NotificationPriority.NORMAL,
+    message="Download: 25%",
+    title="File Download",
+    group="download-status",
+)
+NotificationManager.send_notification(
+    type=NotificationType.PROGRESS,
+    priority=NotificationPriority.NORMAL,
+    message="Download: 75%",
+    title="File Download",
+    group="download-status",
+)  # Replaces previous
+NotificationManager.send_notification(
+    type=NotificationType.SUCCESS,
+    priority=NotificationPriority.NORMAL,
+    message="Download complete!",
+    title="File Download",
+    group="download-status",
+)  # Replaces previous
 ```
+
+### API Reference
+
+The `NotificationManager.send_notification()` static method accepts:
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `type` | `NotificationType` | Yes | — | `INFO`, `SUCCESS`, `WARNING`, `ERROR`, or `PROGRESS` |
+| `priority` | `NotificationPriority` | Yes | — | `NORMAL` or `HIGH` |
+| `message` | `str` | Yes | — | Main notification text |
+| `title` | `str` | No | `""` | Notification title |
+| `detail` | `str` | No | `""` | HTML content for expandable details |
+| `display_time` | `int` | No | `3` | Toast display duration in seconds |
+| `group` | `str` | No | `""` | Group identifier for replacement behavior |
+
+### Notification API Endpoints
+
+The backend also exposes REST endpoints for notification management:
+
+| Endpoint | Description |
+|----------|-------------|
+| `notification_create` | Create a notification via API |
+| `notifications_clear` | Clear all notifications |
+| `notifications_history` | Get notification history |
+| `notifications_mark_read` | Mark notifications as read |
+
+### Agent Tool
+
+Agents can send notifications using the `notify_user` tool (`python/tools/notify_user.py`), which triggers notifications visible to the user during agent execution.
 
 ## Frontend Usage
 
@@ -43,20 +120,35 @@ $store.notificationStore.info("User logged in")
 $store.notificationStore.success("Settings saved", "Configuration")
 $store.notificationStore.warning("Session expiring soon")
 $store.notificationStore.error("Failed to load data")
+$store.notificationStore.progress("Processing...", "Task")
 
 // With grouping
 $store.notificationStore.info("Connecting...", "Status", "", 3, "connection")
 $store.notificationStore.success("Connected!", "Status", "", 3, "connection")  // Replaces previous
 
-// Frontend notifications with backend persistence (new feature!)
+// Frontend notifications with backend persistence
 $store.notificationStore.frontendError("Database timeout", "Connection Error")
 $store.notificationStore.frontendWarning("High memory usage", "Performance")
 $store.notificationStore.frontendInfo("Cache cleared", "System")
+$store.notificationStore.frontendSuccess("Upload complete", "Files")
+$store.notificationStore.frontendProgress("Syncing data...", "Sync")
+```
+
+### Frontend Method Signatures
+
+All notification methods accept:
+
+```javascript
+async info(message, title = "", detail = "", display_time = 3, group = "", priority = defaultPriority)
+async success(message, title = "", detail = "", display_time = 3, group = "", priority = defaultPriority)
+async warning(message, title = "", detail = "", display_time = 3, group = "", priority = defaultPriority)
+async error(message, title = "", detail = "", display_time = 3, group = "", priority = defaultPriority)
+async progress(message, title = "", detail = "", display_time = 3, group = "", priority = defaultPriority)
 ```
 
 ## Frontend Notifications with Backend Sync
 
-**New Feature**: Frontend notifications now automatically sync to the backend when connected, providing persistent history and cross-session availability.
+Frontend notifications automatically sync to the backend when connected, providing persistent history and cross-session availability.
 
 ### How it Works:
 - **Backend Connected**: Notifications are sent to backend and appear via polling (persistent)
@@ -70,6 +162,8 @@ $store.notificationStore.frontendInfo("Cache cleared", "System")
 toastFrontendError("Server unreachable", "Connection Error")
 toastFrontendWarning("Slow connection detected")
 toastFrontendInfo("Reconnected successfully")
+toastFrontendSuccess("Upload complete")
+toastFrontendProgress("Syncing data...")
 ```
 
 ## HTML Usage
@@ -95,34 +189,33 @@ Groups ensure only the latest notification from each group is shown in the toast
 
 ```python
 # Progress updates - each new notification replaces the previous one
-AgentNotification.info("Starting backup...", group="backup-status")
-AgentNotification.progress("Backup: 30%", group="backup-status")  # Replaces previous
-AgentNotification.progress("Backup: 80%", group="backup-status")  # Replaces previous
-AgentNotification.success("Backup complete!", group="backup-status")  # Replaces previous
-
-# Connection status - only show current state
-AgentNotification.warning("Disconnected", group="network")
-AgentNotification.info("Reconnecting...", group="network")  # Replaces previous
-AgentNotification.success("Connected", group="network")  # Replaces previous
+NotificationManager.send_notification(
+    type=NotificationType.INFO,
+    priority=NotificationPriority.NORMAL,
+    message="Starting backup...",
+    group="backup-status",
+)
+NotificationManager.send_notification(
+    type=NotificationType.PROGRESS,
+    priority=NotificationPriority.NORMAL,
+    message="Backup: 80%",
+    group="backup-status",
+)  # Replaces previous
+NotificationManager.send_notification(
+    type=NotificationType.SUCCESS,
+    priority=NotificationPriority.NORMAL,
+    message="Backup complete!",
+    group="backup-status",
+)  # Replaces previous
 ```
-
-## Parameters
-
-All notification methods support these parameters:
-
-- `message` (required): Main notification text
-- `title` (optional): Notification title
-- `detail` (optional): HTML content for expandable details
-- `display_time` (optional): Toast display duration in seconds (default: 3)
-- `group` (optional): Group identifier for replacement behavior
 
 ## Types
 
-- **info** (ℹ️): General information
-- **success** (✅): Successful operations
-- **warning** (⚠️): Important alerts
-- **error** (❌): Error conditions
-- **progress** (⏳): Ongoing operations
+- **info**: General information
+- **success**: Successful operations
+- **warning**: Important alerts
+- **error**: Error conditions
+- **progress**: Ongoing operations
 
 ## Behavior
 
@@ -132,3 +225,4 @@ All notification methods support these parameters:
 - **Auto-dismiss**: Toasts automatically disappear after `display_time`
 - **Group Replacement**: Notifications with the same group replace previous ones immediately
 - **Backend Sync**: Frontend notifications automatically sync to backend when connected
+- **Priority Levels**: `NORMAL` for routine messages, `HIGH` for urgent alerts

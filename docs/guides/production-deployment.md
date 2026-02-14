@@ -78,10 +78,12 @@ docker compose --profile postgres up -d
 - Adds a PostgreSQL 18 container (with pgvector) for the auth database.
 - Replaces the default SQLite auth store.
 - Requires two `.env` changes:
-  ```
+
+  ```text
   POSTGRES_PASSWORD=<strong-password>
   AUTH_DATABASE_URL=postgresql://apollos:${POSTGRES_PASSWORD}@postgres:5432/apollos_auth
   ```
+
   The setup script handles this automatically.
 
 ### Combined -- Full Stack
@@ -126,7 +128,7 @@ python3 -c "import secrets; print(secrets.token_hex(32))"
 
 At least one LLM provider key is required. Set using the `API_KEY_{PROVIDER}` pattern:
 
-```
+```text
 API_KEY_ANTHROPIC=sk-ant-...
 API_KEY_OPENAI=sk-...
 ```
@@ -202,7 +204,8 @@ To trust internal certificate authorities (e.g., enterprise PKI for a LiteLLM pr
 
 1. Place PEM files in `deploy/docker/certs/ca/`.
 2. Set in `.env`:
-   ```
+
+   ```text
    REQUESTS_CA_BUNDLE=/usr/local/share/ca-certificates/custom/your-ca.pem
    ```
 
@@ -235,7 +238,7 @@ Omit `--profile` flags you are not using. Docker Compose only recreates containe
 
 To pin to a specific release, set `IMAGE_TAG` in `.env`:
 
-```
+```text
 IMAGE_TAG=v1.2.0
 ```
 

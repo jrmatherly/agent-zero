@@ -76,7 +76,7 @@ docker run -p 50080:80 ghcr.io/jrmatherly/apollos-ai
 1. **Completely Customizable and Extensible**
 
 - Almost nothing in this framework is hard-coded. Nothing is hidden. Everything can be extended or changed by the user.
-- The whole behavior is defined by a system prompt in the **prompts/default/agent.system.md** file. Change this prompt and change the framework dramatically.
+- The whole behavior is defined by a system prompt in the **prompts/agent.system.main.md** file. Change this prompt and change the framework dramatically.
 - The framework does not guide or limit the agent in any way. There are no hard-coded rails that agents have to follow.
 - Every prompt, every small message template sent to the agent in its communication loop can be found in the **prompts/** folder and changed.
 - Every default tool can be found in the **python/tools/** folder and changed or copied to create new predefined tools.
@@ -135,6 +135,9 @@ docker run -p 50080:80 ghcr.io/jrmatherly/apollos-ai
 | [Installation](./docs/setup/installation.md) | Installation, setup and configuration |
 | [Usage](./docs/guides/usage.md) | Basic and advanced usage |
 | [Guides](./docs/guides/) | Step-by-step guides: Usage, Projects, API Integration, MCP Setup, A2A Setup |
+| [Azure Enterprise Setup](./docs/guides/azure-enterprise-setup.md) | Entra ID SSO, RBAC, MCP OAuth configuration |
+| [MCP Server Auth](./docs/guides/mcp-server-auth.md) | MCP server authentication (OAuth, tokens) |
+| [Production Deployment](./docs/guides/production-deployment.md) | Production deployment with reverse proxy and SSL |
 | [Development Setup](./docs/setup/dev-setup.md) | Development and customization |
 | [WebSocket Infrastructure](./docs/developer/websockets.md) | Real-time WebSocket handlers, client APIs, filtering semantics, envelopes |
 | [Extensions](./docs/developer/extensions.md) | Extending Apollos AI |

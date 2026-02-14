@@ -26,6 +26,7 @@ Send messages to Apollos AI and receive responses. Supports text messages, file 
 - `attachments` (array, optional): Array of `{filename, base64}` objects
 - `lifetime_hours` (number, optional): Chat lifetime in hours (default: 24)
 - `project` (string, optional): Project name to activate (only on first message)
+- `agent_profile` (string, optional): Agent profile to use for this conversation
 
 **Headers:**
 - `X-API-KEY` (required)

@@ -344,9 +344,10 @@ Use the naming format required by your selected provider:
 
 | Provider | Model Name Format | Example |
 | --- | --- | --- |
-| OpenAI | Model name only | `claude-sonnet-4-5` |
+| Anthropic | Model name only | `claude-sonnet-4-5` |
+| OpenAI | Model name only | `gpt-4o` |
 | OpenRouter | Provider prefix mostly required | `anthropic/claude-sonnet-4-5` |
-| Ollama | Model name only | `gpt-oss:20b` |
+| Ollama | Model name only | `llama3.2` |
 
 > [!TIP]
 > If you see "Invalid model ID," verify the provider and naming format on the provider website, or search the web for "<name-of-ai-model> model naming".
@@ -534,7 +535,7 @@ A0_SET_{setting_name}={value}
 ```env
 # Model configuration
 A0_SET_chat_model_provider=anthropic
-A0_SET_chat_model_name=claude-3-5-sonnet-20241022
+A0_SET_chat_model_name=claude-sonnet-4-5
 A0_SET_chat_model_ctx_length=200000
 
 # Memory settings
@@ -553,7 +554,7 @@ When running Docker, you can pass these as environment variables:
 ```bash
 docker run -p 50080:80 \
   -e A0_SET_chat_model_provider=anthropic \
-  -e A0_SET_chat_model_name=claude-3-5-sonnet-20241022 \
+  -e A0_SET_chat_model_name=claude-sonnet-4-5 \
   ghcr.io/jrmatherly/apollos-ai
 ```
 

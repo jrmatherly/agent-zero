@@ -29,7 +29,20 @@ This guide consolidates everything you need to design, implement, and troublesho
 - **`python/helpers/websocket.py`** – base class for application handlers. Provides lifecycle hooks, helper methods (`emit_to`, `broadcast`, `request`, `request_all`) and identifier metadata.
 - **`webui/js/websocket.js`** – frontend singleton exposing a minimal client API (`emit`, `request`, `on`, `off`) with lazy connection management and development-only logging (no client-side `broadcast()` or `requestAll()` helpers).
 - **Developer Harness (`webui/components/settings/developer/websocket-test-store.js`)** – manual and automatic validation suite for emit/request flows, timeout behaviour (including the default unlimited wait), correlation ID propagation, envelope metadata, subscription persistence across reconnect, and development-mode diagnostics.
-- **Specs & Contracts** – canonical definitions live under `specs/003-websocket-event-handlers/`. This guide references those documents but focuses on applied usage.
+- **Source Code** – canonical implementations live in `python/helpers/websocket_manager.py`, `python/helpers/websocket.py`, and `webui/js/websocket.js`. This guide references those files throughout.
+
+### Registered Handlers
+
+Four WebSocket handlers are auto-discovered from `python/websocket_handlers/`:
+
+| File | Class | Namespace | Purpose |
+|------|-------|-----------|---------|
+| `_default.py` | `RootDefaultHandler` | `/` | Default root namespace handler |
+| `state_sync_handler.py` | `StateSyncHandler` | `/state_sync` | Real-time UI state synchronization |
+| `hello_handler.py` | `HelloHandler` | `/hello` | Connection health check |
+| `dev_websocket_test_handler.py` | `DevWebsocketTestHandler` | `/dev_websocket_test` | Developer testing harness |
+
+Handler files are named by convention: the filename (without `.py`) derives the namespace. The `_default.py` file maps to the root `/` namespace.
 
 ---
 
@@ -38,7 +51,7 @@ This guide consolidates everything you need to design, implement, and troublesho
 | Term | Where it Appears | Meaning |
 |------|------------------|---------|
 | `sid` | Socket.IO | Connection identifier for a Socket.IO namespace connection. With only the root namespace (`/`), each tab has one `sid`. When connecting to multiple namespaces, a tab has one `sid` per namespace. Treat connection identity as `(namespace, sid)`. |
-| `handlerId` | Manager Envelope | Fully-qualified Python class name (e.g., `python.websocket_handlers.notifications.NotificationHandler`). Used for result aggregation and logging. |
+| `handlerId` | Manager Envelope | Fully-qualified Python class name (e.g., `python.websocket_handlers.state_sync_handler.StateSyncHandler`). Used for result aggregation and logging. |
 | `eventId` | Manager Envelope | UUIDv4 generated for every server→client delivery. Unique per emission. Useful when correlating broadcast fan-out or diagnosing duplicates. |
 | `correlationId` | Bidirectional flows | Thread that ties together request, response, and any follow-up events. Client may supply one; otherwise the manager generates and echoes it everywhere. |
 | `data` | Envelope payload | Application payload you define. Always a JSON-serialisable object. |
@@ -421,7 +434,7 @@ websocket.on('example_broadcast', ({ data, handlerId, eventId, correlationId }) 
 
 See also
 - Error Codes Registry (above) for the authoritative code list
-- Contracts: `frontend-api.md` for method signatures and response shapes
+- Method signatures and response shapes are documented in the sections above
 
 ---
 
@@ -583,7 +596,7 @@ The manager validates the payload, resolves/creates `correlationId`, and passes 
 - Location: `Settings → Developer → WebSocket Event Console`.
 - Enabling capture calls `websocket.request("ws_event_console_subscribe", { requestedAt })`. The handler (`DevWebsocketTestHandler`) refuses the subscription outside development mode and registers the SID as a **diagnostic watcher** by calling `WebSocketManager.register_diagnostic_watcher`. Only connected SIDs can subscribe.
 - Disabling capture calls `websocket.request("ws_event_console_unsubscribe", {})`. Disconnecting also triggers `WebSocketManager.unregister_diagnostic_watcher`, so stranded watchers never accumulate.
-- While at least one watcher exists, the manager streams `ws_dev_console_event` envelopes (documented in `contracts/event-schemas.md`). Each payload contains:
+- While at least one watcher exists, the manager streams `ws_dev_console_event` envelopes (documented below). Each payload contains:
   - `kind`: `"inbound" | "outbound" | "lifecycle"`
   - `eventType`, `sid`, `targets[]`, delivery/buffer flags
   - `resultSummary` (handler counts, per-handler status, durationMs)
@@ -657,15 +670,22 @@ The manager validates the payload, resolves/creates `correlationId`, and passes 
 
 ## Further Reading
 
-- **QuickStart** – [`specs/003-websocket-event-handlers/quickstart.md`](../specs/003-websocket-event-handlers/quickstart.md) for a step-by-step introduction.
-- **Contracts** – Backend, frontend, schema, and security contracts define the canonical API surface:
-  - [`websocket-handler-interface.md`](../specs/003-websocket-event-handlers/contracts/websocket-handler-interface.md)
-  - [`frontend-api.md`](../specs/003-websocket-event-handlers/contracts/frontend-api.md)
-  - [`event-schemas.md`](../specs/003-websocket-event-handlers/contracts/event-schemas.md)
-  - [`security-contract.md`](../specs/003-websocket-event-handlers/contracts/security-contract.md)
-- **Implementation Reference** – Inspect `python/helpers/websocket_manager.py`, `python/helpers/websocket.py`, `webui/js/websocket.js`, and the developer harness in `webui/components/settings/developer/websocket-test-store.js` for concrete examples.
+- **Implementation Reference** – The canonical source of truth for the WebSocket infrastructure:
+  - Backend manager: `python/helpers/websocket_manager.py`
+  - Handler base class: `python/helpers/websocket.py`
+  - Frontend client: `webui/js/websocket.js`
+  - Developer harness: `webui/components/settings/developer/websocket-test-store.js`
+  - Event console: `webui/components/settings/developer/websocket-event-console-store.js`
+- **Available Handlers** – Four auto-discovered handlers ship with the framework:
+  - `_default.py` → `RootDefaultHandler` (root `/` namespace)
+  - `state_sync_handler.py` → `StateSyncHandler` (`/state_sync` namespace)
+  - `hello_handler.py` → `HelloHandler` (`/hello` namespace)
+  - `dev_websocket_test_handler.py` → `DevWebsocketTestHandler` (`/dev_websocket_test` namespace)
+- **Related Guides**:
+  - [Connectivity Guide](connectivity.md) for external API and MCP integration
+  - [Notifications Guide](notifications.md) for the notification system (delivered via HTTP polling, not WebSocket)
 
-> **Tip:** When extending the infrastructure (new metadata) start by updating the contracts, sync the manager/frontend helpers, and then document the change here so producers and consumers stay in lockstep.
+> **Tip:** When extending the infrastructure (new metadata), update the manager/frontend helpers first, then document the change here so producers and consumers stay in lockstep.
 
 ## Error Codes Registry (Draft for Phase 6)
 
@@ -679,7 +699,7 @@ The WebSocket stack standardizes backend error codes returned in `RequestResultI
 | `HARNESS_UNKNOWN_EVENT` | Developer harness | Harness test handler received an unsupported event name. | Update harness sources or disable the step before running automation. | `{ "handlerId": "python.websocket_handlers.dev_websocket_test_handler.DevWebsocketTestHandler", "ok": false, "error": { "code": "HARNESS_UNKNOWN_EVENT", "error": "Unhandled event", "details": "ws_tester_foo" } }` |
 
 Notes
-- Error payload shape follows the contract documented in `contracts/event-schemas.md` (`RequestResultItem.error`).
+- Error payload shape follows the `RequestResultItem.error` structure documented above.
 - Codes are case‑sensitive. Use exactly as listed.
 - Future codes will be appended here and referenced by inline docstrings/JSDoc.
 
@@ -724,6 +744,6 @@ Remaining work (tracked in Phase 6 tasks)
 - T145–T147: Ensure the harness logs/validates codes in envelopes/results as part of the automatic and manual suites.
 
 Related references
-- [`event-schemas.md`](../specs/003-websocket-event-handlers/contracts/event-schemas.md)
-- [`websocket-handler-interface.md`](../specs/003-websocket-event-handlers/contracts/websocket-handler-interface.md)
-- [`frontend-api.md`](../specs/003-websocket-event-handlers/contracts/frontend-api.md)
+- Event schemas, handler interfaces, and frontend API are documented above in this guide
+- [Connectivity Guide](connectivity.md)
+- [Notifications Guide](notifications.md)

@@ -227,9 +227,15 @@ mkdir -p ${A0_PATH}/logs
 # Create .env file with authentication
 cat > ${A0_PATH}/.env << 'EOF'
 # Apollos AI Configuration
-# Authentication (REQUIRED for web access)
-AUTH_LOGIN=your_username_here
-AUTH_PASSWORD=your_secure_password_here
+# Modern authentication (recommended)
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<your-strong-password>
+FLASK_SECRET_KEY=<generate-with-openssl-rand-hex-32>
+VAULT_MASTER_KEY=<generate-with-openssl-rand-hex-32>
+
+# Legacy single-user auth (fallback)
+# AUTH_LOGIN=admin
+# AUTH_PASSWORD=<your-strong-password>
 
 # Optional: Additional configuration
 # See Apollos AI documentation for all options
@@ -260,7 +266,13 @@ A0_PORT="50080"
 docker pull ghcr.io/jrmatherly/apollos-ai:latest
 
 # Run container
-docker run -d   --name ${A0_NAME}   --restart unless-stopped   -p ${A0_PORT}:80   -v ${A0_PATH}/.env:/a0/.env   -v ${A0_PATH}/usr:/a0/usr   ghcr.io/jrmatherly/apollos-ai:latest
+docker run -d \
+  --name ${A0_NAME} \
+  --restart unless-stopped \
+  -p ${A0_PORT}:80 \
+  --env-file ${A0_PATH}/.env \
+  -v ${A0_PATH}/usr:/a0/usr \
+  ghcr.io/jrmatherly/apollos-ai:latest
 ```
 
 ### Step 5: Verify Container
@@ -485,8 +497,12 @@ chmod 600 /etc/ssl/a0/*
 
 | Variable | Purpose | Example |
 |----------|---------|--------|
-| `AUTH_LOGIN` | The **username** for login | `AUTH_LOGIN=admin` |
-| `AUTH_PASSWORD` | The **password** for login | `AUTH_PASSWORD=SecurePass123!` |
+| `ADMIN_EMAIL` | Admin account email for modern auth system | `ADMIN_EMAIL=admin@example.com` |
+| `ADMIN_PASSWORD` | Admin account password | `ADMIN_PASSWORD=SecurePass123!` |
+| `FLASK_SECRET_KEY` | Session encryption key (REQUIRED for production) | `FLASK_SECRET_KEY=<openssl rand -hex 32>` |
+| `VAULT_MASTER_KEY` | Vault encryption key (REQUIRED for secret storage) | `VAULT_MASTER_KEY=<openssl rand -hex 32>` |
+| `AUTH_LOGIN` | The **username** for login (legacy fallback) | `AUTH_LOGIN=admin` |
+| `AUTH_PASSWORD` | The **password** for login (legacy fallback) | `AUTH_PASSWORD=SecurePass123!` |
 
 > ⚠️ **Common Mistake:** `AUTH_LOGIN` is the username, **not** a boolean to enable auth!
 
@@ -731,7 +747,13 @@ docker stop a0-instance
 docker rm a0-instance
 
 # Recreate with same settings
-docker run -d   --name a0-instance   --restart unless-stopped   -p 50080:80   -v /opt/a0-instance/.env:/a0/.env   -v /opt/a0-instance/usr:/a0/usr   -v /opt/apollos-ai:latest
+docker run -d \
+  --name a0-instance \
+  --restart unless-stopped \
+  -p 50080:80 \
+  --env-file /opt/a0-instance/.env \
+  -v /opt/a0-instance/usr:/a0/usr \
+  ghcr.io/jrmatherly/apollos-ai:latest
 ```
 
 ### Backup Strategy
@@ -742,8 +764,9 @@ tar -czvf a0-backup-$(date +%Y%m%d).tar.gz /opt/a0-instance/
 
 # Key items to backup:
 # - /opt/a0-instance/.env (configuration)
-# - /opt/a0-instance/memory/ (agent memories)
-# - /opt/a0-instance/work_dir/ (working files)
+# - /opt/a0-instance/usr/ (all persistent data including chats, memory, settings)
+# Note: All user data lives under /a0/usr/ in the container,
+# mapped to /opt/a0-instance/usr/ on the host via the volume mount
 ```
 
 ### Monitoring

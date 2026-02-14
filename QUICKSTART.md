@@ -80,7 +80,7 @@ Open `http://localhost:50080`. The `-v` flag persists data across container rest
 ## 5. Build Local Docker Image
 
 ```bash
-mise run docker:build    # Build from DockerfileLocal
+mise run docker:build    # Build base + local images
 mise run docker:run      # Run on port 50080
 ```
 
@@ -96,7 +96,7 @@ mise run ci              # All checks: lint + format + test
 Single test file:
 
 ```bash
-uv run pytest tests/test_websocket_manager.py -v
+mise run t -- tests/test_websocket_manager.py -v
 ```
 
 Git hooks (hk) run automatically on commit: Ruff, Biome, security checks, conventional commit format.
@@ -163,4 +163,7 @@ This generates a changelog (git-cliff from conventional commits) and creates a G
 - `docs/developer/architecture.md` — Architecture overview
 - `docs/developer/extensions.md` — Extension system and lifecycle hooks
 - `docs/guides/mcp-setup.md` — MCP server configuration
+- `docs/guides/mcp-server-auth.md` — MCP server authentication (OAuth, tokens)
 - `docs/guides/a2a-setup.md` — Agent-to-Agent protocol setup
+- `docs/guides/azure-enterprise-setup.md` — Azure Entra ID SSO configuration
+- `docs/guides/production-deployment.md` — Production deployment guide

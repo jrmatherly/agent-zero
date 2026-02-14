@@ -13,27 +13,44 @@ Here's a summary of the extensible components:
 Extensions are components that hook into specific points in the agent's lifecycle. They allow you to modify or enhance the behavior of Apollos AI at predefined extension points. The framework uses a plugin-like architecture where extensions are automatically discovered and loaded.
 
 #### Extension Points
-Apollos AI provides several extension points where custom code can be injected:
+Apollos AI provides 24 extension points where custom code can be injected:
 
-- **agent_init**: Executed when an agent is initialized
-- **before_main_llm_call**: Executed before the main LLM call is made
-- **message_loop_start**: Executed at the start of the message processing loop
-- **message_loop_prompts_before**: Executed before prompts are processed in the message loop
-- **message_loop_prompts_after**: Executed after prompts are processed in the message loop
-- **message_loop_end**: Executed at the end of the message processing loop
-- **monologue_start**: Executed at the start of agent monologue
-- **monologue_end**: Executed at the end of agent monologue
-- **reasoning_stream**: Executed when reasoning stream data is received
-- **response_stream**: Executed when response stream data is received
-- **system_prompt**: Executed when system prompts are processed
+- **agent_init** — Executed when an agent is initialized
+- **banners** — Executed when generating UI banners
+- **before_main_llm_call** — Executed before the main LLM call is made
+- **error_format** — Executed when formatting error messages
+- **hist_add_before** — Executed before adding an entry to chat history
+- **hist_add_tool_result** — Executed when adding a tool result to chat history
+- **message_loop_end** — Executed at the end of the message processing loop
+- **message_loop_prompts_after** — Executed after prompts are processed in the message loop
+- **message_loop_prompts_before** — Executed before prompts are processed in the message loop
+- **message_loop_start** — Executed at the start of the message processing loop
+- **monologue_end** — Executed at the end of agent monologue
+- **monologue_start** — Executed at the start of agent monologue
+- **process_chain_end** — Executed at the end of the processing chain
+- **reasoning_stream** — Executed when reasoning stream data is received
+- **reasoning_stream_chunk** — Executed for each chunk of reasoning stream data
+- **reasoning_stream_end** — Executed when reasoning stream completes
+- **response_stream** — Executed when response stream data is received
+- **response_stream_chunk** — Executed for each chunk of response stream data
+- **response_stream_end** — Executed when response stream completes
+- **system_prompt** — Executed when system prompts are processed
+- **tool_execute_after** — Executed after a tool finishes execution
+- **tool_execute_before** — Executed before a tool begins execution
+- **user_message_ui** — Executed when a user message arrives from the UI
+- **util_model_call_before** — Executed before utility model calls
 
 #### Extension Mechanism
-The extension mechanism in Apollos AI works through the `call_extensions` function in `agent.py`, which:
+The extension mechanism in Apollos AI works through the `call_extensions` function in `extension.py`, which delegates path resolution to `subagents.get_paths()`. The search follows a 6-level priority chain, where earlier paths take precedence:
 
-1. Loads default extensions from `/python/extensions/{extension_point}/`
-2. Loads agent-specific extensions from `/agents/{agent_profile}/extensions/{extension_point}/`
-3. Merges them, with agent-specific extensions overriding default ones based on filename
-4. Executes each extension in order
+1. `usr/projects/{project}/.a0proj/agents/{profile}/extensions/{point}/` (project agent-scoped)
+2. `usr/projects/{project}/.a0proj/extensions/{point}/` (project-scoped)
+3. `usr/agents/{profile}/extensions/{point}/` (user agent-scoped)
+4. `agents/{profile}/extensions/{point}/` (default agent-scoped)
+5. `usr/extensions/{point}/` (user overrides)
+6. `python/extensions/{point}/` (framework defaults)
+
+Extensions from all paths are merged by filename. When multiple paths contain an extension with the same filename, only the first occurrence (highest priority) is used. After deduplication, all extensions are sorted by filename and executed in order.
 
 #### Creating Extensions
 To create a custom extension:
@@ -96,8 +113,10 @@ class ResponseTool(Tool):
 When a tool is called, it goes through the following lifecycle:
 1. Tool initialization
 2. `before_execution` method
-3. `execute` method (main functionality)
-4. `after_execution` method
+3. The `tool_execute_before` extension hook is called, allowing extensions to inspect or modify the tool call before it runs
+4. `execute` method (main functionality)
+5. The `tool_execute_after` extension hook is called, allowing extensions to inspect or modify the result after execution
+6. `after_execution` method
 
 ### API Endpoints
 API endpoints expose Apollos AI functionality to external systems or the user interface. They are modular and can be extended or replaced.
@@ -156,14 +175,14 @@ class Tools(VariablesPlugin):
         folders = [folder]
         if backup_dirs:
             folders.extend([files.get_abs_path(d) for d in backup_dirs])
-        
+
         prompt_files = files.get_unique_filenames_in_dirs(folders, "agent.system.tool.*.md")
-        
+
         tools = []
         for prompt_file in prompt_files:
             tool = files.read_file(prompt_file)
             tools.append(tool)
-        
+
         return {"tools": "\n\n".join(tools)}
 ```
 
@@ -282,7 +301,7 @@ When a project is activated for a chat:
   - The memory file is stored under `.a0proj/memory/`
 - Files created or modified by the agent are located within the project directory
 
-The `.a0proj/knowledge/` folder contains files that are imported into the project’s memory, enabling project-focused knowledge bases.
+The `.a0proj/knowledge/` folder contains files that are imported into the project's memory, enabling project-focused knowledge bases.
 
 ### Secrets and Variables
 

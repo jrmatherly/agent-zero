@@ -1,8 +1,6 @@
 # Development manual for Apollos AI
 This guide will show you how to setup a local development environment for Apollos AI in a VS Code compatible IDE, including proper debugger.
 
-[![Tutorial video](./res/devguide_vid.png)](https://www.youtube.com/watch?v=KE39P4qBjDk)
-
 > [!WARNING]
 > This guide is for developers and contributors. It assumes you have a basic understanding of how to use Git/GitHub, Docker, IDEs and Python.
 
@@ -24,6 +22,18 @@ This guide will show you how to setup a local development environment for Apollo
 - You can choose your own variants, but Python, Docker and a VS Code compatible IDE are required.
 - For Python you can choose your environment manager - base Python venv, Conda, uv...
 
+## Step 0.5: Install mise (Task Runner)
+
+Apollos AI uses [mise](https://mise.jdx.dev/) as its task runner. All development commands are run through mise.
+
+1. Install mise: `curl https://mise.jdx.dev/install.sh | sh`
+2. Activate mise in your shell (follow the output instructions)
+3. Run `mise install` in the project directory to install managed tools (Python, uv, ruff, etc.)
+
+> [!NOTE]
+> All commands in this guide and throughout the project documentation use `mise run <task>`.
+> Run `mise task ls` to see all available tasks.
+
 ## Step 1: Clone or download the repository
 - Apollos AI is available on GitHub [github.com/jrmatherly/apollos-ai](https://github.com/jrmatherly/apollos-ai).
 - You can download the files using a browser and extract or run `git clone https://github.com/jrmatherly/apollos-ai` in your desired directory.
@@ -38,7 +48,7 @@ This guide will show you how to setup a local development environment for Apollo
 1. Open your IDE and open the project folder using `File > Open Folder` and select your folder, in my case `~/Desktop/apollos-ai`.
 2. You will probably be prompted to trust the directory, confirm that.
 3. You should now have the project open in your IDE
-![VS Code project](res/dev/devinst-1.png)
+![VS Code project](../res/dev/devinst-1.png)
 
 # Step 3: Prepare your IDE:
 1. Notice the prompt in lower right corner of the screenshot above to install recommended extensions, this comes from the `.vscode/extensions.json` file. It contains Python language support, debugger and error helper, install them by confirming the popup or manually in Extensions tab of your IDE. These are the extensions mentioned:
@@ -50,27 +60,25 @@ ms-python.python
 ```
 
 Now when you select one of the python files in the project, you should see proper Python syntax highlighting and error detection. It should immediately show some errors, because we did not yet install dependencies.
-![VS Code Python](res/dev/devinst-2.png)
+![VS Code Python](../res/dev/devinst-2.png)
 
 2. Prepare the python environment to run Apollos AI in. (⚠️ This step assumes you have some Python runtime installed.) By clicking the python version in lower right corner (3.13.1 in my example), you should get a list of available environments. You can click the `+ Create Virtual Environment` button. You might be prompted to select the environment manager if you have multiple installed. I have venv and Conda, I will select Conda here. I'm also prompted for desired python version, I will select 3.12, that is known to work well.
-![VS Code Python environments](res/dev/devinst-3.png)
-![VS Code Python environments](res/dev/devinst-4.png)
+![VS Code Python environments](../res/dev/devinst-3.png)
+![VS Code Python environments](../res/dev/devinst-4.png)
 
 - Your new environment should be automatically activated. If not, select it in the lower right corner. You might need to open a new terminal in VS Code to reflect the changes with `Terminal > New Terminal` or clicking the `+` button in the terminal tab. Your terminal prompt should now start with your environment name/path, in my case `(/Users/frdel/Desktop/apollos-ai/.conda)` This shows the environment is active in the terminal.
 
-![VS Code env terminal](res/dev/devinst-5.png)
+![VS Code env terminal](../res/dev/devinst-5.png)
 
 3. Install dependencies. Run these commands in the terminal:
 
 ```bash
-# Recommended (uses uv — fast, reproducible):
-uv sync
-playwright install chromium
-
-# Alternative (pip fallback):
-pip install -r requirements.txt
-playwright install chromium
+# First-time setup (installs deps + playwright + git hooks)
+mise run setup
 ```
+
+> [!NOTE]
+> `mise run setup` handles everything: Python dependencies, Playwright browser, and git hooks. Do not run `uv sync`, `pip install`, or `playwright install` directly.
 
 These will install all the python packages and browser binaries for playwright (browser agent).
 Errors in the code editor caused by missing packages should now be gone. If not, try reloading the window.
@@ -79,31 +87,31 @@ Errors in the code editor caused by missing packages should now be gone. If not,
 Great work! Now you should be able to run Apollos AI from your IDE including real-time debugging.
 It will not be able to do code execution and few other features requiring the Docker container just yet, but most of the framework will already work.
 
-1. The project is pre-configured for debugging. Go to Debugging tab, select "run_ui.py" and click the green play button (or press F5 by default). The configuration can be found at `.vscode/launch.json`.
+1. The project is pre-configured for debugging. Go to Debugging tab, select "Debug run_ui.py" and click the green play button (or press F5 by default). The configuration can be found at `.vscode/launch.json`.
 
-![VS Code debugging](res/dev/devinst-6.png)
+![VS Code debugging](../res/dev/devinst-6.png)
 
-The framework will run at the default port 5000. If you open `http://localhost:5000` in your browser and see `ERR_EMPTY_RESPONSE`, don't panic, you may need to select another port like I did for some reason. If you need to change the default port, you can add `"--port=5555"` to the args in the `.vscode/launch.json` file or you can create a `.env` file in the root directory and set the `WEB_UI_PORT` variable to the desired port.
+The framework will run at the default port 5000. If you open `http://localhost:5000` in your browser and see `ERR_EMPTY_RESPONSE`, don't panic, you may need to select another port like I did for some reason. If you need to change the default port, you can add `"--port=5555"` to the args in the `.vscode/launch.json` file or you can create a `.env` file at `usr/.env` (copy from `usr/.env.example`) and set the `WEB_UI_PORT` variable to the desired port.
 
 You can also set the bind host via `"--host=0.0.0.0"` (or `WEB_UI_HOST=0.0.0.0`).
 
 It may take a while the first time. You should see output like the screenshot below. The RFC error is ok for now as we did not yet connect our local development to another instance in docker.
-![First run](res/dev/devinst-7.png)
+![First run](../res/dev/devinst-7.png)
 
 After inserting my API key in settings, my Apollos AI instance works. I can send a simple message and get a response.
 ⚠️ Some tools like code execution will not work yet as they need to be connected to a Dockerized instance.
 
-![First message](res/dev/devinst-8.png)
+![First message](../res/dev/devinst-8.png)
 
 ## Debugging
 - You can try out the debugger already by placing a breakpoint somewhere in the python code.
 - Let's open `python/api/message.py` for example and place a breakpoint at the beginning of the `communicate` function by clicking on the left of the row number. A red dot should appear showing a breakpoint is set.
 
-![Debugging](res/dev/devinst-9.png)
+![Debugging](../res/dev/devinst-9.png)
 
 - Now when I send a message in the UI, the debugger will pause the execution at the breakpoint and allow me to inspect all the runtime variables and run the code step by step, even modify the variables or jump to another locations in the code. No more print statements needed!
 
-![Debugging](res/dev/devinst-10.png)
+![Debugging](../res/dev/devinst-10.png)
 
 ## Step 5: Run another instance of Apollos AI in Docker
 - Some parts of the application require a standardized linux environment, additional web services and preinstalled binaries that would be unneccessarily complex to set up in a local environment.
@@ -113,8 +121,8 @@ After inserting my API key in settings, my Apollos AI instance works. I can send
 If you want, you can also map the `/a0` folder to our local project folder as well, this way we can update our local instance and the docker instance at the same time.
 This is how it looks in my example: port `80` is mapped to `8880` on the host and `22` to `8822`, `/a0` folder mapped to `/Users/frdel/Desktop/apollos-ai`:
 
-![docker run](res/dev/devinst-11.png)
-![docker run](res/dev/devinst-12.png)
+![docker run](../res/dev/devinst-11.png)
+![docker run](../res/dev/devinst-12.png)
 
 ## Step 6: Configure SSH and RFC connection
 - The last step is to configure the local development (VS Code) instance and the dockerized instance to communicate with each other. This is very simple and can be done in the settings in the Web UI of both instances.
@@ -127,10 +135,10 @@ This is how it looks in my example: port `80` is mapped to `8880` on the host an
 5. Click save and test by asking your agent to do something in the terminal, like "Get current OS version". It should be able to communicate with the dockerized instance via RFC and SSH and execute the command there, responding with something like "Kali GNU/Linux Rolling".
 
 My Dockerized instance:
-![Dockerized instance](res/dev/devinst-14.png)
+![Dockerized instance](../res/dev/devinst-14.png)
 
 My VS Code instance:
-![VS Code instance](res/dev/devinst-13.png)
+![VS Code instance](../res/dev/devinst-13.png)
 
 ## RFC Notes (Host IDE + Docker Execution)
 Apollos AI runs code inside the container by default. If you are running the framework locally in your IDE but want tools (like code execution) to run in Docker, configure RFC in **Settings -> Development** and point it to a running Apollos AI container. This routes execution through SSH/RFC to the container while keeping the UI and agent loop on your host.

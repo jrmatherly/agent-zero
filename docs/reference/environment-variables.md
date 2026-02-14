@@ -18,7 +18,9 @@ Variables in `usr/.env` override system environment. The file is gitignored and 
 | `ROOT_PASSWORD` | Root password for code execution container. Auto-generated (32-char alphanumeric) inside Docker if unset. | Any string | *(auto-generated in Docker)* | No |
 | `RFC_PASSWORD` | Remote Function Call password for SSH/HTTP to execution sandbox | Any string | *(empty)* | No |
 | `FLASK_SECRET_KEY` | Flask session signing key; auto-generated if unset | Hex string (64 chars) | Random `secrets.token_hex(32)` | No |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins for CSRF validation | URL list | *(empty — auto-populated on first visit)* | No |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed origins for CSRF validation. Auto-populated on first visit. This controls the CSRF origin allowlist, NOT the Flask-CORS configuration. For CORS origins, use `CORS_ALLOWED_ORIGINS`. | URL list | *(empty — auto-populated on first visit)* | No |
+| `SESSION_COOKIE_SECURE` | Set to `true`, `1`, or `yes` to enable the `Secure` flag on session cookies. Required for HTTPS deployments. | `true`, `1`, `yes` | *(empty — disabled)* | No |
+| `CORS_ALLOWED_ORIGINS` | Comma-separated list of additional CORS origins to allow. Added to Flask-CORS configuration alongside auto-detected origins. Distinct from `ALLOWED_ORIGINS` which controls CSRF validation. | URL list | *(empty)* | No |
 
 **Generating secure values:**
 
@@ -226,10 +228,10 @@ python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 |----------|-------------|--------|---------|----------|
 | `WEB_UI_HOST` | Host/IP address for the web UI server | IP or hostname | `localhost` | No |
 | `WEB_UI_PORT` | Port for the web UI server | Integer | `5000` | No |
-| `TUNNEL_API_PORT` | Port for the tunnel proxy API | Integer | `0` (disabled) | No |
+| `TUNNEL_API_PORT` | Port for the tunnel API. While the env var defaults to `0`, a value of `0` triggers the fallback to `55520` in `runtime.py`. Set explicitly to override. | Integer | `55520` (effective default) | No |
 | `FLASK_MAX_CONTENT_LENGTH` | Max upload size in bytes | Integer | `5368709120` (5 GB) | No |
 | `FLASK_MAX_FORM_MEMORY_SIZE` | Max form field size in bytes | Integer | `5368709120` (5 GB) | No |
-| `SSL_VERIFY` | Disable SSL certificate verification for LLM API calls (consumed by LiteLLM, not application code) | `true`/`false` | `true` | No |
+| `SSL_VERIFY` | Disable SSL certificate verification for LLM API calls. Passthrough variable consumed by LiteLLM internally, not read by Apollos AI application code. | `true`/`false` | `true` | No |
 
 ## API Keys (Provider Authentication)
 
@@ -467,7 +469,6 @@ These variables are read by `python/helpers/branding.py` at import time and used
 | `BRAND_SLUG` | URL-safe and filename-safe identifier used in paths and generated assets | `apollos-ai` | No |
 | `BRAND_URL` | Project website URL displayed in the UI footer and about pages | `https://apollos.ai` | No |
 | `BRAND_GITHUB_URL` | GitHub repository URL used for source links and update checks | `https://github.com/jrmatherly/apollos-ai` | No |
-| `BRAND_UPDATE_CHECK_URL` | URL for update version checks; set to empty string to disable | `https://api.github.com/repos/jrmatherly/apollos-ai/releases/latest` | No |
 
 **Example — custom branding for a white-label deployment:**
 
@@ -478,6 +479,14 @@ BRAND_SLUG=my-custom-ai
 BRAND_URL=https://mycustomai.example.com
 BRAND_GITHUB_URL=https://github.com/myorg/my-custom-ai
 ```
+
+## Update Check
+
+Read by `python/helpers/update_check.py`, not `python/helpers/branding.py`. Controls the URL checked for new releases.
+
+| Variable | Description | Default | Required |
+|----------|-------------|---------|----------|
+| `BRAND_UPDATE_CHECK_URL` | URL for update version checks; set to empty string to disable | `https://api.github.com/repos/jrmatherly/apollos-ai/releases/latest` | No |
 
 ## Docker & Container
 

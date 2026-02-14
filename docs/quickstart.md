@@ -8,7 +8,7 @@ This guide provides a quick introduction to using Apollos AI. We'll cover the es
 Download and install Docker Desktop for your operating system:
 
 - **Windows:** Download from [Docker Desktop](https://www.docker.com/products/docker-desktop/) and run the installer with default settings
-- **macOS:** Download for Apple Silicon or Intel, drag to Applications, and enable the Docker socket in Settings → Advanced
+- **macOS:** Download for Apple Silicon or Intel, drag to Applications, and enable the Docker socket in Settings > Advanced
 - **Linux:** Install Docker Desktop or docker-ce following the [official instructions](https://docs.docker.com/desktop/install/linux-install/)
 
 > [!TIP]
@@ -42,12 +42,12 @@ Open your browser and navigate to `http://localhost:<PORT>`. The Web UI will sho
 
 Click **Add your API key** to open Settings and configure:
 
-- **Default Provider:** OpenRouter (supports most models with a single API key)
-- **Alternative Providers:** Anthropic, OpenAI, Ollama/LM Studio (local models), and many others
-- **Model Selection:** Choose your chat model (e.g., `anthropic/claude-sonnet-4-5` for OpenRouter)
+- **Providers:** Apollos AI supports many LLM providers including Anthropic, OpenAI, Google, Groq, Azure OpenAI, Ollama (local models), LM Studio, and others
+- **Model Selection:** Choose your chat model in Settings. The default configuration uses Google Gemini, but you can switch to any supported provider
+- **API Key:** Enter the API key for your chosen provider
 
 > [!NOTE]
-> Apollos AI supports any LLM provider, including local models via Ollama. For detailed provider configuration and local model setup, see the [Installation Guide](setup/installation.md#choosing-your-llms).
+> Apollos AI supports any LLM provider compatible with LiteLLM, including local models via Ollama. For detailed provider configuration and local model setup, see the [Installation Guide](setup/installation.md#choosing-your-llms).
 
 ### Step 5: Start Your First Chat
 
@@ -65,7 +65,7 @@ Click **New Chat** to start creating with Apollos AI!
 ![Apollos AI Dashboard](res/quickstart/ui_newchat1.png)
 
 > [!TIP]
-> The Web UI provides a comprehensive chat actions dropdown with options for managing conversations, including creating new chats, resetting, saving/loading, and many more advanced features. Chats are saved in JSON format in the `/usr/chats` directory.
+> The Web UI provides a comprehensive chat actions dropdown with options for managing conversations, including creating new chats, resetting, saving/loading, and many more advanced features. Chats are saved in JSON format in the `usr/chats` directory (or under tenant-scoped paths in multi-user deployments).
 >
 > ![Chat Actions Dropdown](res/quickstart/ui_chat_management.png)
 
@@ -94,8 +94,3 @@ Now that you've run a simple task, you can experiment with more complex requests
 ### [Open Usage Guide](guides/usage.md)
 
 Provides more in-depth information on tools, projects, tasks, and backup/restore.
-
-## 🎓 Video Tutorials
-- [MCP Server Setup](https://youtu.be/pM5f4Vz3_IQ)
-- [Projects & Workspaces](https://youtu.be/RrTDp_v9V1c)
-- [Memory Management](https://youtu.be/sizjAq2-d9s)
