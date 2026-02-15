@@ -198,7 +198,12 @@ const model = {
 				this.discoveryResults = [];
 			}
 		} catch (e) {
-			this.error = e.message;
+			this.discoveryResults = [];
+			if (e.message?.includes("CSRF")) {
+				this.error = "Session expired. Please refresh the page and try again.";
+			} else {
+				this.error = e.message || "Registry search failed";
+			}
 		}
 		this.loading = false;
 	},

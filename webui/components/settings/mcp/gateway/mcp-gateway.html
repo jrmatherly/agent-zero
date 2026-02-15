@@ -304,8 +304,15 @@
       </template>
     </div>
 
+    <!-- Search error (inline) -->
+    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.error && $store.mcpGateway.activeView === 'discover'"
+         style="padding: 1rem; margin-bottom: 0.5rem; border: 1px solid var(--color-error, #c33); border-radius: 8px; opacity: 0.9;">
+      <span class="material-symbols-outlined" style="font-size: 1rem; vertical-align: middle;">error</span>
+      <span x-text="$store.mcpGateway.error"></span>
+    </div>
+
     <!-- Empty results -->
-    <div x-show="!$store.mcpGateway.loading && $store.mcpGateway.discoveryResults.length === 0 && $store.mcpGateway.discoveryQuery"
+    <div x-show="!$store.mcpGateway.loading && !$store.mcpGateway.error && $store.mcpGateway.discoveryResults.length === 0 && $store.mcpGateway.discoveryQuery"
          style="text-align: center; padding: 2rem; opacity: 0.6;">
       No servers found matching your search.
     </div>
