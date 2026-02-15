@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.4.6] - 2026-02-15
+
+
+### Bug Fixes
+
+- Set .env file ownership to appuser
+
+
+### Documentation
+
+- Add detailed platform integrations architecture documentation and update Jira webhook setup JQL filter formatting.
+- Add platform integration env vars to Docker .env.example
+
+
+### Features
+
+- Update MCP registry client to raise errors and include remote server details, enhancing gateway discovery for remote servers and new package formats while adjusting the web UI and tunnel runner.
+- *(integrations)* Platform integration — Slack, GitHub, Jira webhooks and callbacks (#13)
+
+
+### Security
+
+- Fix CodeQL log injection, XSS, and stack trace exposure
+- Harden error responses and log sanitization
+- Break taint chains for CodeQL log injection and XSS alerts
+- Break CodeQL taint chain in tunnel server request handler
+
+
 ## [v0.4.5] - 2026-02-14
 
 
