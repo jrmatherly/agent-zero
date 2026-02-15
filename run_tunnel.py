@@ -1,10 +1,11 @@
-import threading
+import json
 
-from flask import Flask, jsonify, request
+from flask import Flask, Response, request
 
-from python.api.tunnel import Tunnel
+from python.api import tunnel as tunnel_api
 from python.helpers import dotenv, process, runtime
 from python.helpers.print_style import PrintStyle
+from python.helpers.tunnel_manager import TunnelManager
 
 # initialize the internal Flask server
 app = Flask("app")
@@ -27,24 +28,26 @@ def run():
         runtime.get_arg("host") or dotenv.get_dotenv_value("WEB_UI_HOST") or "localhost"
     )
     server = None
-    lock = threading.Lock()
-    tunnel = Tunnel(app, lock)
 
-    # handle api request
+    # handle api request — call tunnel logic directly and return safe JSON
     @app.route("/", methods=["POST"])
     async def handle_request():
         try:
-            response = await tunnel.handle_request(request=request)  # type: ignore
-            # Ensure response is always JSON to prevent XSS via content sniffing
-            if (
-                hasattr(response, "content_type")
-                and "json" not in response.content_type
-            ):
-                return jsonify({"error": "Internal server error"}), 500
-            return response
+            body = request.get_json(silent=True) or {}
+            result = await tunnel_api.process(body)
+            # tunnel_api.process() always returns dict — serialize fresh
+            return Response(
+                response=json.dumps(result),
+                status=200,
+                mimetype="application/json",
+            )
         except Exception as e:
             PrintStyle.error(f"Tunnel error: {str(e)}")
-            return jsonify({"error": "Internal server error"}), 500
+            return Response(
+                response=json.dumps({"error": "Internal server error"}),
+                status=500,
+                mimetype="application/json",
+            )
 
     try:
         server = make_server(
@@ -60,8 +63,10 @@ def run():
         server.serve_forever()
     finally:
         # Clean up tunnel if it was started
-        if tunnel:
-            tunnel.stop()
+        try:
+            TunnelManager.get_instance().stop_tunnel()
+        except Exception:
+            pass
 
 
 # run the internal server
